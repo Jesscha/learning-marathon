@@ -42,10 +42,7 @@ const DEFAULT_PARTICIPANTS = [
 ];
 
 // Add this array of authorized email addresses
-const AUTHORIZED_EMAILS = [
-  "jessecha222@gmail.com",
-  // Add all authorized email addresses
-];
+const AUTHORIZED_EMAILS = import.meta.env.VITE_AUTHORIZED_EMAILS.split(",");
 
 function App() {
   const [participants, setParticipants] =
