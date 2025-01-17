@@ -1,96 +1,106 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import "./App.css";
 
 interface Participant {
   name: string;
   streak: number;
   lastCheckIn: Date | null;
-  hasCheckedToday: boolean;
 }
 
+const DEFAULT_PARTICIPANTS = [
+  {
+    name: "범근",
+    streak: 0,
+    lastCheckIn: null,
+  },
+  {
+    name: "이새",
+    streak: 0,
+    lastCheckIn: null,
+  },
+  {
+    name: "건영",
+    streak: 0,
+    lastCheckIn: null,
+  },
+  {
+    name: "영택",
+    streak: 0,
+    lastCheckIn: null,
+  },
+  {
+    name: "정원",
+    streak: 0,
+    lastCheckIn: null,
+  },
+  {
+    name: "경호",
+    streak: 0,
+    lastCheckIn: null,
+  },
+];
+
 function App() {
-  const [participants, setParticipants] = useState<Participant[]>(() => {
-    // Load saved state from localStorage
-    const saved = localStorage.getItem("habitMarathonState");
-    return saved
-      ? JSON.parse(saved, (key, value) => {
-          // Convert stored date strings back to Date objects
-          if (key === "lastCheckIn" && value) {
-            return new Date(value);
-          }
-          return value;
-        })
-      : [
-          {
-            name: "범근",
-            streak: 0,
-            lastCheckIn: null,
-            hasCheckedToday: false,
-          },
-          {
-            name: "이새",
-            streak: 0,
-            lastCheckIn: null,
-            hasCheckedToday: false,
-          },
-          {
-            name: "건영",
-            streak: 0,
-            lastCheckIn: null,
-            hasCheckedToday: false,
-          },
-          {
-            name: "영택",
-            streak: 0,
-            lastCheckIn: null,
-            hasCheckedToday: false,
-          },
-          {
-            name: "정원",
-            streak: 0,
-            lastCheckIn: null,
-            hasCheckedToday: false,
-          },
-          {
-            name: "경호",
-            streak: 0,
-            lastCheckIn: null,
-            hasCheckedToday: false,
-          },
-        ];
-  });
+  const [participants, setParticipants] =
+    useState<Participant[]>(DEFAULT_PARTICIPANTS);
+
+  const [lastCheckIn, setLastCheckIn] = useState<Date | null>();
+  const [lastStreak, setLastStreak] = useState<number>(0);
+
+  const [isFail, setIsFail] = useState(false);
+
+  const totalStreak = useMemo(() => {
+    return participants.reduce((sum, p) => sum + p.streak, 0);
+  }, [participants]);
+
+  const isLastCheckIn2daysBefore = useMemo(() => {
+    if (!lastCheckIn) return false;
+    // might fail on international marathon
+    const checkInDate = new Date(lastCheckIn).getDate();
+    const today = new Date().getDate();
+
+    return today - checkInDate > 2;
+  }, [lastCheckIn]);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem("habitMarathonState", JSON.stringify(participants));
   }, [participants]);
 
-  const getCurrentParticipant = () => {
-    return participants.find((p) => !p.hasCheckedToday);
-  };
+  useEffect(() => {
+    if (isLastCheckIn2daysBefore) {
+      setIsFail(true);
+      // add dump data
+      setParticipants(DEFAULT_PARTICIPANTS);
+      setLastStreak(totalStreak);
+    }
+  }, [isLastCheckIn2daysBefore, totalStreak]);
+
+  const currentParticipant = useMemo(() => {
+    return participants.reduce(
+      (minParticipant: Participant | null, currentParticipant) => {
+        if (
+          !minParticipant ||
+          currentParticipant.streak < minParticipant.streak
+        ) {
+          return currentParticipant;
+        }
+        return minParticipant;
+      },
+      null
+    );
+  }, [participants]);
 
   const handleCheckIn = () => {
-    const currentParticipant = getCurrentParticipant();
     if (!currentParticipant) return;
-
     setParticipants((prev) =>
       prev.map((p) => {
         if (p.name === currentParticipant.name) {
           const today = new Date();
-          const lastCheckIn = p.lastCheckIn;
-
-          // Calculate if the streak continues
           let newStreak = 1;
-          if (lastCheckIn) {
-            const timeDiff = today.getTime() - lastCheckIn.getTime();
-            const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-
-            // Streak continues if checked within last 24-48 hours
-            if (daysDiff <= 1) {
-              newStreak = p.streak + 1;
-            }
+          if (p.lastCheckIn) {
+            newStreak = p.streak + 1;
           }
-
           return {
             ...p,
             streak: newStreak,
@@ -101,35 +111,34 @@ function App() {
         return p;
       })
     );
+    setLastCheckIn(new Date());
   };
 
-  // Reset hasCheckedToday at midnight but preserve streaks
-  useEffect(() => {
-    const resetDaily = () => {
-      const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
-        setParticipants((prev) =>
-          prev.map((p) => ({
-            ...p,
-            hasCheckedToday: false,
-          }))
-        );
-      }
-    };
-
-    const interval = setInterval(resetDaily, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Sort participants to show next runner at the top
   const sortedParticipants = [...participants].sort((a, b) => {
-    if (!a.hasCheckedToday && !b.hasCheckedToday) {
-      return participants.indexOf(a) - participants.indexOf(b);
-    }
-    if (!a.hasCheckedToday) return -1;
-    if (!b.hasCheckedToday) return 1;
-    return participants.indexOf(a) - participants.indexOf(b);
+    if (a.name === currentParticipant?.name) return -1;
+    if (b.name === currentParticipant?.name) return 1;
+    return 0;
   });
+
+  if (isFail) {
+    return (
+      <div className="fail-container">
+        <h1 className="fail-title">🚫 Marathon Failed</h1>
+        <p className="fail-message">
+          Someone missed their check-in for more than 2 days. The marathon has
+          been reset.
+        </p>
+        <div className="fail-stats">
+          <div className="total-streaks">
+            Total Streaks Achieved: {lastStreak}
+          </div>
+        </div>
+        <button className="restart-button" onClick={() => setIsFail(false)}>
+          Start New Marathon
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -137,12 +146,10 @@ function App() {
 
       {/* Next Runner Section */}
       <div className="next-runner-section">
-        {getCurrentParticipant() ? (
+        {currentParticipant ? (
           <div className="next-runner">
             <div className="next-runner-label">Next Runner</div>
-            <div className="next-runner-name">
-              {getCurrentParticipant()?.name}
-            </div>
+            <div className="next-runner-name">{currentParticipant?.name}</div>
             <button className="check-in-button" onClick={handleCheckIn}>
               ✓ Check In
             </button>
@@ -155,32 +162,21 @@ function App() {
         )}
       </div>
 
-      {/* Progress Bar */}
-      <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{
-            width: `${
-              (participants.filter((p) => p.hasCheckedToday).length /
-                participants.length) *
-              100
-            }%`,
-          }}
-        />
+      <div className="total-streak-section">
+        <div className="total-streak-label">Total Team Streak</div>
+        <div className="total-streak-value">{totalStreak}</div>
+        <div className="total-streak-unit">days</div>
       </div>
 
-      {/* Participants Grid */}
       <div className="participants-list">
         {sortedParticipants.map((participant, index) => (
           <div
             key={participant.name}
             className={`participant-card ${
-              participant.hasCheckedToday ? "checked" : ""
+              currentParticipant?.name === participant.name ? "current" : ""
             } 
               ${
-                getCurrentParticipant()?.name === participant.name
-                  ? "current"
-                  : ""
+                currentParticipant?.name === participant.name ? "current" : ""
               }`}
           >
             <div className="participant-order">{index + 1}</div>
@@ -190,14 +186,8 @@ function App() {
               <span className="streak-number">{participant.streak}</span>
               <span className="streak-days">days</span>
             </div>
-            <div
-              className={`status ${
-                participant.hasCheckedToday ? "done" : "waiting"
-              }`}
-            >
-              {participant.hasCheckedToday
-                ? "✅ Completed"
-                : getCurrentParticipant()?.name === participant.name
+            <div className={`status`}>
+              {currentParticipant?.name === participant.name
                 ? "👉 Your Turn!"
                 : "⏳ Waiting"}
             </div>
