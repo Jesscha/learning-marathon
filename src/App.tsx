@@ -1,42 +1,37 @@
 import { useState, useEffect, useMemo } from "react";
 import "./App.css";
+import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { db } from "./firebase";
 
 interface Participant {
   name: string;
   streak: number;
-  lastCheckIn: Date | null;
 }
 
 const DEFAULT_PARTICIPANTS = [
   {
     name: "범근",
     streak: 0,
-    lastCheckIn: null,
   },
   {
     name: "이새",
     streak: 0,
-    lastCheckIn: null,
   },
   {
     name: "건영",
     streak: 0,
-    lastCheckIn: null,
   },
   {
     name: "영택",
     streak: 0,
-    lastCheckIn: null,
   },
   {
     name: "정원",
     streak: 0,
-    lastCheckIn: null,
   },
   {
     name: "경호",
     streak: 0,
-    lastCheckIn: null,
   },
 ];
 
@@ -62,10 +57,43 @@ function App() {
     return today - checkInDate > 2;
   }, [lastCheckIn]);
 
-  // Save to localStorage whenever state changes
+  const sameDayOnLastCheckIn = useMemo(() => {
+    if (!lastCheckIn) return false;
+    const checkInDate = new Date(lastCheckIn).getDate();
+    const today = new Date().getDate();
+
+    return checkInDate === today;
+  }, [lastCheckIn]);
+
+  // Load data from Firestore on component mount
   useEffect(() => {
-    localStorage.setItem("habitMarathonState", JSON.stringify(participants));
-  }, [participants]);
+    const fetchData = async () => {
+      try {
+        // Fetch participants
+        const querySnapshot = await getDocs(collection(db, "participants"));
+        const participantsData = querySnapshot.docs.map(
+          (doc) => doc.data() as Participant
+        );
+
+        // Fetch last check-in time
+        const lastCheckInDoc = await getDocs(collection(db, "metadata"));
+        const lastCheckInData = lastCheckInDoc.docs[0]?.data();
+
+        if (lastCheckInData?.lastCheckIn) {
+          setLastCheckIn(new Date(lastCheckInData.lastCheckIn));
+        }
+
+        // If there's data in Firestore, use it. Otherwise, use defaults
+        if (participantsData.length > 0) {
+          setParticipants(participantsData);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (isLastCheckIn2daysBefore) {
@@ -93,24 +121,33 @@ function App() {
 
   const handleCheckIn = () => {
     if (!currentParticipant) return;
-    setParticipants((prev) =>
-      prev.map((p) => {
-        if (p.name === currentParticipant.name) {
-          const today = new Date();
-          let newStreak = 1;
-          if (p.lastCheckIn) {
-            newStreak = p.streak + 1;
-          }
-          return {
-            ...p,
-            streak: newStreak,
-            lastCheckIn: today,
-            hasCheckedToday: true,
-          };
+    const saveToFirestore = async (participants: Participant[]) => {
+      try {
+        // Save each participant as a separate document
+        for (const participant of participants) {
+          await setDoc(doc(db, "participants", participant.name), participant);
         }
-        return p;
-      })
-    );
+
+        // Save last check-in time
+        await setDoc(doc(db, "metadata", "lastCheckIn"), {
+          lastCheckIn: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("Error saving to Firestore:", error);
+      }
+    };
+    const newParticipants = participants.map((p) => {
+      if (p.name === currentParticipant.name) {
+        return {
+          ...p,
+          streak: p.streak + 1,
+        };
+      }
+      return p;
+    });
+
+    setParticipants(newParticipants);
+    saveToFirestore(newParticipants);
     setLastCheckIn(new Date());
   };
 
@@ -150,8 +187,12 @@ function App() {
           <div className="next-runner">
             <div className="next-runner-label">Next Runner</div>
             <div className="next-runner-name">{currentParticipant?.name}</div>
-            <button className="check-in-button" onClick={handleCheckIn}>
-              ✓ Check In
+            <button
+              className="check-in-button"
+              onClick={handleCheckIn}
+              disabled={sameDayOnLastCheckIn}
+            >
+              {sameDayOnLastCheckIn ? "Already Checked In Today" : "✓ Check In"}
             </button>
           </div>
         ) : (
