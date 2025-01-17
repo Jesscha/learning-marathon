@@ -2,6 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import "./App.css";
 import { collection, getDocs, setDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  User,
+} from "firebase/auth";
 
 interface Participant {
   name: string;
@@ -35,6 +41,12 @@ const DEFAULT_PARTICIPANTS = [
   },
 ];
 
+// Add this array of authorized email addresses
+const AUTHORIZED_EMAILS = [
+  "jessecha222@gmail.com",
+  // Add all authorized email addresses
+];
+
 function App() {
   const [participants, setParticipants] =
     useState<Participant[]>(DEFAULT_PARTICIPANTS);
@@ -43,6 +55,10 @@ function App() {
   const [lastStreak, setLastStreak] = useState<number>(0);
 
   const [isFail, setIsFail] = useState(false);
+
+  // Add auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   const totalStreak = useMemo(() => {
     return participants.reduce((sum, p) => sum + p.streak, 0);
@@ -119,8 +135,19 @@ function App() {
     );
   }, [participants]);
 
+  // Add authentication check
+  useEffect(() => {
+    const auth = getAuth();
+    auth.onAuthStateChanged((user) => {
+      setUser(user);
+      if (user && user.email) {
+        setIsAuthorized(AUTHORIZED_EMAILS.includes(user.email));
+      }
+    });
+  }, []);
+
   const handleCheckIn = () => {
-    if (!currentParticipant) return;
+    if (!currentParticipant || !isAuthorized) return;
     const saveToFirestore = async (participants: Participant[]) => {
       try {
         // Save each participant as a separate document
@@ -157,6 +184,17 @@ function App() {
     return 0;
   });
 
+  // Add login function
+  const handleLogin = async () => {
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error signing in:", error);
+    }
+  };
+
   if (isFail) {
     return (
       <div className="fail-container">
@@ -173,6 +211,24 @@ function App() {
         <button className="restart-button" onClick={() => setIsFail(false)}>
           Start New Marathon
         </button>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="app">
+        <h1 className="title">🏃‍♂️ Habit Marathon 🏃‍♀️</h1>
+        <button onClick={handleLogin}>Sign in with Google</button>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="app">
+        <h1 className="title">🏃‍♂️ Habit Marathon 🏃‍♀️</h1>
+        <p>Sorry, you are not authorized to participate.</p>
       </div>
     );
   }
