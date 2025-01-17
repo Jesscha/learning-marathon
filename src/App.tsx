@@ -45,7 +45,6 @@ const DEFAULT_PARTICIPANTS = [
 const AUTHORIZED_EMAILS = import.meta.env.VITE_AUTHORIZED_EMAILS.split(",").map(
   (email: string) => email.trim()
 );
-console.log(AUTHORIZED_EMAILS);
 
 function App() {
   const [participants, setParticipants] =
