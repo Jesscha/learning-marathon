@@ -12,32 +12,39 @@ import {
 interface Participant {
   name: string;
   streak: number;
+  priority: number;
 }
 
 const DEFAULT_PARTICIPANTS = [
   {
     name: "범근",
     streak: 0,
+    priority: 0,
   },
   {
     name: "이새",
     streak: 0,
+    priority: 1,
   },
   {
     name: "건영",
     streak: 0,
+    priority: 2,
   },
   {
     name: "영택",
     streak: 0,
+    priority: 3,
   },
   {
     name: "정원",
     streak: 0,
+    priority: 4,
   },
   {
     name: "경호",
     streak: 0,
+    priority: 5,
   },
 ];
 
@@ -120,18 +127,9 @@ function App() {
   }, [isLastCheckIn2daysBefore, totalStreak]);
 
   const currentParticipant = useMemo(() => {
-    return participants.reduce(
-      (minParticipant: Participant | null, currentParticipant) => {
-        if (
-          !minParticipant ||
-          currentParticipant.streak < minParticipant.streak
-        ) {
-          return currentParticipant;
-        }
-        return minParticipant;
-      },
-      null
-    );
+    return participants
+      .sort((a, b) => a.streak - b.streak)
+      .sort((a, b) => a.priority - b.priority)[0];
   }, [participants]);
 
   // Add authentication check
@@ -180,7 +178,12 @@ function App() {
   const sortedParticipants = [...participants].sort((a, b) => {
     if (a.name === currentParticipant?.name) return -1;
     if (b.name === currentParticipant?.name) return 1;
-    return 0;
+
+    if (a.streak === b.streak) {
+      return a.priority - b.priority;
+    }
+
+    return a.streak - b.streak;
   });
 
   // Add login function
