@@ -19,32 +19,32 @@ const DEFAULT_PARTICIPANTS = [
   {
     name: "범근",
     streak: 0,
-    priority: 0,
+    priority: 5,
   },
   {
     name: "이새",
     streak: 0,
-    priority: 1,
+    priority: 0,
   },
   {
     name: "건영",
     streak: 0,
-    priority: 2,
+    priority: 1,
   },
   {
     name: "영택",
     streak: 0,
-    priority: 3,
+    priority: 2,
   },
   {
     name: "정원",
     streak: 0,
-    priority: 4,
+    priority: 3,
   },
   {
     name: "경호",
     streak: 0,
-    priority: 5,
+    priority: 4,
   },
 ];
 
@@ -127,9 +127,12 @@ function App() {
   }, [isLastCheckIn2daysBefore, totalStreak]);
 
   const currentParticipant = useMemo(() => {
-    return participants
-      .sort((a, b) => a.streak - b.streak)
-      .sort((a, b) => a.priority - b.priority)[0];
+    return participants.sort((a, b) => {
+      if (a.streak !== b.streak) {
+        return a.streak - b.streak;
+      }
+      return a.priority - b.priority;
+    })[0];
   }, [participants]);
 
   // Add authentication check
