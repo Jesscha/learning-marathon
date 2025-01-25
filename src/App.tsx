@@ -142,7 +142,13 @@ function App() {
     })[0];
   }, [participants]);
 
-  const isEligibleParticipant = user?.email === currentParticipant?.email;
+  const isEligibleParticipant = useMemo(() => {
+    return (
+      !!user?.email &&
+      !!currentParticipant?.email &&
+      user.email === currentParticipant.email
+    );
+  }, [user, currentParticipant]);
 
   // Add authentication check
   useEffect(() => {
