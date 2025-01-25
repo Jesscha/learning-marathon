@@ -11,6 +11,7 @@ import {
 
 interface Participant {
   name: string;
+  email: string;
   streak: number;
   priority: number;
 }
@@ -18,31 +19,37 @@ interface Participant {
 const DEFAULT_PARTICIPANTS = [
   {
     name: "범근",
+    email: "isp1195@gmail.com",
     streak: 0,
     priority: 5,
   },
   {
     name: "이새",
+    email: "jessecha222@gmail.com",
     streak: 0,
     priority: 0,
   },
   {
     name: "건영",
+    email: "withoutyoung@gmail.com",
     streak: 0,
     priority: 1,
   },
   {
     name: "영택",
+    email: "robbieinertia@gmail.com",
     streak: 0,
     priority: 2,
   },
   {
     name: "정원",
+    email: "aidenp.dev@gmail.com",
     streak: 0,
     priority: 3,
   },
   {
     name: "경호",
+    email: "scpsy2012@gmail.com",
     streak: 0,
     priority: 4,
   },
@@ -134,6 +141,8 @@ function App() {
       return a.priority - b.priority;
     })[0];
   }, [participants]);
+
+  const isEligibleParticipant = user?.email === currentParticipant?.email;
 
   // Add authentication check
   useEffect(() => {
@@ -251,7 +260,7 @@ function App() {
             <button
               className="check-in-button"
               onClick={handleCheckIn}
-              disabled={sameDayOnLastCheckIn}
+              disabled={!isEligibleParticipant || sameDayOnLastCheckIn}
             >
               {sameDayOnLastCheckIn ? "Already Checked In Today" : "✓ Check In"}
             </button>
