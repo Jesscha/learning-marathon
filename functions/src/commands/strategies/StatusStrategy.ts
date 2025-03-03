@@ -1,6 +1,7 @@
 import { CommandStrategy } from './CommandStrategy';
 import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
+import { getTodayDateString, getTodayKoreanString } from '../../utils/dateUtils';
 
 export class StatusStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -9,6 +10,8 @@ export class StatusStrategy implements CommandStrategy {
     
     // TODO: 그룹 스트릭 계산 로직 구현
     console.log('"/status" 명령어 처리 중');
+    console.log(`오늘 날짜(KST): ${getTodayDateString()}`);
+    console.log(`한국어 날짜: ${getTodayKoreanString()}`);
     
     // 오류가 발생하면 상위로 전파
     // 예: throw new Error('스트릭 계산 중 오류가 발생했습니다: 데이터베이스 연결 실패');

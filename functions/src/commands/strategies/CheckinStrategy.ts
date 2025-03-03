@@ -10,6 +10,7 @@ import { sendMessage, getFileUrl } from '../../utils/telegramUtils';
 import { CheckIn } from '../../types/CheckIn';
 import { Timestamp } from 'firebase-admin/firestore';
 import { storageBucket } from '../../firebase';
+import { getTodayDateString } from '../../utils/dateUtils';
 
 export class CheckinStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -146,7 +147,7 @@ export class CheckinStrategy implements CommandStrategy {
     try {
       // 현재 날짜 정보 가져오기
       const now = new Date();
-      const dateId = this.formatDateToYYYYMMDD(now); // YYYY-MM-DD 형식의 ID 생성
+      const dateId = getTodayDateString(); // YYYY-MM-DD 형식의 ID 생성
       const timestamp = Timestamp.fromDate(now);
       
       // 체크인 데이터 객체 생성 (CheckIn 인터페이스에 맞게)
@@ -186,14 +187,6 @@ export class CheckinStrategy implements CommandStrategy {
       console.error('Error saving check-in to Firestore:', error);
       throw new Error('체크인 데이터 저장 중 오류가 발생했습니다.');
     }
-  }
-  
-  // YYYY-MM-DD 형식으로 날짜 포맷팅
-  private formatDateToYYYYMMDD(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
   }
 
   getDescription(): string {
