@@ -6,10 +6,7 @@ import * as admin from 'firebase-admin';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { telegramConfig } from '../../config/telegramConfig';
-
-const TELEGRAM_API = telegramConfig.apiUrl;
-const TELEGRAM_FILE_API = telegramConfig.fileApiUrl;
+import { sendMessage, getFileUrl } from '../../utils/telegramUtils';
 
 export class CheckinStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -28,7 +25,7 @@ export class CheckinStrategy implements CommandStrategy {
       
       try {
         // 1. 텔레그램 API를 통해 파일 정보 가져오기
-        const fileUrl = await this.getFileUrl(photoInfo.file_id);
+        const fileUrl = await getFileUrl(photoInfo.file_id);
         
         // 2. 파일 다운로드 및 Firebase Storage에 업로드
         const downloadUrl = await this.downloadAndUploadFile(fileUrl, userId, chatId);
@@ -37,10 +34,10 @@ export class CheckinStrategy implements CommandStrategy {
         await this.saveCheckinToFirestore(userId, chatId, content, downloadUrl);
         
         // 4. 체크인 성공 메시지 보내기
-        await this.sendSuccessMessage(chatId, '사진 체크인이 성공적으로 등록되었습니다!');
+        await sendMessage(chatId, '사진 체크인이 성공적으로 등록되었습니다!');
       } catch (error) {
         console.error('Error processing photo check-in:', error);
-        await this.sendErrorMessage(chatId, '사진 체크인 처리 중 오류가 발생했습니다.');
+        await sendMessage(chatId, '사진 체크인 처리 중 오류가 발생했습니다.');
       }
     } 
     // 텍스트 메시지인 경우
@@ -54,35 +51,11 @@ export class CheckinStrategy implements CommandStrategy {
         await this.saveCheckinToFirestore(userId, chatId, content);
         
         // 체크인 성공 메시지 보내기
-        await this.sendSuccessMessage(chatId, '텍스트 체크인이 성공적으로 등록되었습니다!');
+        await sendMessage(chatId, '텍스트 체크인이 성공적으로 등록되었습니다!');
       } catch (error) {
         console.error('Error processing text check-in:', error);
-        await this.sendErrorMessage(chatId, '텍스트 체크인 처리 중 오류가 발생했습니다.');
+        await sendMessage(chatId, '텍스트 체크인 처리 중 오류가 발생했습니다.');
       }
-    }
-  }
-
-  // 텔레그램 API를 통해 파일 URL 가져오기
-  private async getFileUrl(fileId: string): Promise<string> {
-    try {
-      // getFile API 호출
-      const response = await fetch(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get file path from Telegram API: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.ok || !data.result.file_path) {
-        throw new Error('Failed to get file path from Telegram API');
-      }
-      
-      const filePath = data.result.file_path;
-      return `${TELEGRAM_FILE_API}/${filePath}`;
-    } catch (error) {
-      console.error('Error getting file URL:', error);
-      throw new Error('파일 URL을 가져오는 중 오류가 발생했습니다.');
     }
   }
 
@@ -175,50 +148,6 @@ export class CheckinStrategy implements CommandStrategy {
     } catch (error) {
       console.error('Error saving check-in to Firestore:', error);
       throw new Error('체크인 데이터 저장 중 오류가 발생했습니다.');
-    }
-  }
-
-  // 성공 메시지 보내기
-  private async sendSuccessMessage(chatId: number, message: string): Promise<void> {
-    try {
-      const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to send success message: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error sending success message:', error);
-    }
-  }
-
-  // 오류 메시지 보내기
-  private async sendErrorMessage(chatId: number, message: string): Promise<void> {
-    try {
-      const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to send error message: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error sending error message:', error);
     }
   }
 
