@@ -10,13 +10,14 @@ export class CommandContext {
     this.strategies.set(commandName.toLowerCase(), strategy);
   }
 
-  // 전략 실행
   async executeStrategy(commandName: string, update: TelegramUpdate, args: string[]): Promise<void> {
     const strategy = this.strategies.get(commandName.toLowerCase());
     if (strategy) {
+      // 전략 실행 중 발생하는 모든 오류를 상위로 전파
       await strategy.execute(update, args);
       return;
     }
+    // 알 수 없는 명령어 오류를 상위로 전파
     throw new Error(`Unknown command: ${commandName}`);
   }
 

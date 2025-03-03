@@ -7,18 +7,13 @@ import './strategies/TodayStrategy';
 import './strategies/StatusStrategy';
 import './strategies/HelpStrategy';
 
-// 명령어 처리 함수
 export async function processCommand(update: TelegramUpdate) {
-  if (!update.message) return;
+  if (!update.message) throw new Error('Message is empty');
   const chatId = update.message.chat?.id;
   const userId = update.message.from?.id;
-  if (!chatId || !userId) return;
+  if (!chatId || !userId) throw new Error('Chat ID or User ID is missing');
 
-  // 명령어 실행
-  try {
-    const commandName = CommandContext.parseCommand(update);
-    await commandContext.executeStrategy(commandName, update, []);
-  } catch (error) {
-    console.error(`Error processing command`, error);
-  }
+  // 명령어 실행 - 오류를 상위로 전파
+  const commandName = CommandContext.parseCommand(update);
+  await commandContext.executeStrategy(commandName, update, []);
 }
