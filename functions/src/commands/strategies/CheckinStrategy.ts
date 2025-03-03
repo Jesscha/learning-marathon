@@ -3,17 +3,13 @@ import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
 import { isPhotoMessage, isTextMessage } from '../../types/TelegramUpdate';
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import fetch from 'node-fetch';
-import { Readable } from 'stream';
+import { telegramConfig } from '../../config/telegramConfig';
 
-// 텔레그램 봇 토큰 가져오기
-const BOT_TOKEN = functions.config().telegram?.bot_token || '';
-const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const TELEGRAM_FILE_API = `https://api.telegram.org/file/bot${BOT_TOKEN}`;
+const TELEGRAM_API = telegramConfig.apiUrl;
+const TELEGRAM_FILE_API = telegramConfig.fileApiUrl;
 
 export class CheckinStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -103,10 +99,10 @@ export class CheckinStrategy implements CommandStrategy {
       }
       
       // 응답을 버퍼로 변환
-      const buffer = await response.buffer();
+      const buffer = await response.arrayBuffer();
       
       // 임시 파일로 저장
-      fs.writeFileSync(tempFilePath, buffer);
+      fs.writeFileSync(tempFilePath, Buffer.from(buffer));
       
       // Firebase Storage에 업로드
       const bucket = admin.storage().bucket();
