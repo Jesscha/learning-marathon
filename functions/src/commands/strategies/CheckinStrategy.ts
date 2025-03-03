@@ -120,14 +120,10 @@ export class CheckinStrategy implements CommandStrategy {
       // 임시 파일 삭제
       fs.unlinkSync(tempFilePath);
       
-      // 다운로드 URL 생성
-      const file = bucket.file(storageFilePath);
-      const [url] = await file.getSignedUrl({
-        action: 'read',
-        expires: '01-01-2100' // 장기간 유효한 URL
-      });
+      // 공개 URL 생성 (서명된 URL 대신)
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${storageFilePath}`;
       
-      return url;
+      return publicUrl;
     } catch (error) {
       console.error('파일 다운로드 및 업로드 중 오류 발생:', error);
       // 임시 파일이 존재하면 삭제
