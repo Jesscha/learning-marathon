@@ -34,16 +34,16 @@ export class CommandContext {
   }
 
   // factory method for parse payload from telegram to create strategy
-  static parseCommand(payload: TelegramUpdate): string {
-    if (!payload.message) throw new Error('메시지가 비어 있습니다. 유효한 메시지를 보내주세요.');
+  static parseCommand(payload: TelegramUpdate): string | null {
+    if (!payload.message) return null;
 
     if (isTextMessage(payload.message)) {
       const text = payload.message.text;
-      if (!text) throw new Error('텍스트 메시지가 비어 있습니다. 내용을 입력해주세요.');
+      if (!text) return null;
       
       // 명령어가 /로 시작하는지 확인
       if (!text.startsWith('/')) {
-        throw new Error('텍스트 메시지가 "/"로 시작하지 않습니다. 명령어는 "/"로 시작해야 합니다. (예: /checkin)');
+        return null; // 명령어가 아닌 경우 null 반환
       }
       
       // /를 제거하고 첫 번째 단어를 명령어로 사용
@@ -55,14 +55,14 @@ export class CommandContext {
     if (isPhotoMessage(payload.message)) {
       const caption = payload.message.caption;
       
-      // 캡션이 없는 경우 기본 명령어 반환 또는 오류 발생
+      // 캡션이 없는 경우 null 반환
       if (!caption || caption.trim() === '') {
-        throw new Error('사진 캡션이 비어 있습니다. 사진과 함께 "/명령어" 형식의 캡션을 입력해주세요. (예: /checkin)');
+        return null;
       }
       
       // 명령어가 /로 시작하는지 확인
       if (!caption.startsWith('/')) {
-        throw new Error('사진 캡션이 "/"로 시작하지 않습니다. 명령어는 "/"로 시작해야 합니다. (예: /checkin)');
+        return null; // 명령어가 아닌 경우 null 반환
       }
       
       // /를 제거하고 첫 번째 단어를 명령어로 사용
@@ -71,7 +71,7 @@ export class CommandContext {
       return commandName;
     }
     
-    throw new Error('지원되지 않는 메시지 유형입니다. 텍스트 메시지나 사진 메시지를 보내주세요.');
+    return null; // 지원되지 않는 메시지 유형인 경우 null 반환
   }
 }
 
