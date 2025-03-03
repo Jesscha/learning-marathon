@@ -5,7 +5,6 @@ import { CommandContext, commandContext } from './CommandContext';
 import './strategies/CheckinStrategy';
 import './strategies/TodayStrategy';
 import './strategies/StatusStrategy';
-import './strategies/HelpStrategy';
 
 export async function processCommand(update: TelegramUpdate) {
   if (!update.message) throw new Error('Message is empty');
