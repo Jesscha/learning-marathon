@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import { sendMessage, getFileUrl } from '../../utils/telegramUtils';
 import { CheckIn } from '../../types/CheckIn';
 import { Timestamp } from 'firebase-admin/firestore';
+import { storageBucket } from '../../firebase';
 
 export class CheckinStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -100,7 +101,7 @@ export class CheckinStrategy implements CommandStrategy {
       fs.writeFileSync(tempFilePath, Buffer.from(buffer));
       
       // Firebase Storage에 업로드
-      const bucket = admin.storage().bucket();
+      const bucket = storageBucket;
       const timestamp = Date.now();
       const storageFilePath = `checkins/${chatId}/${userId}/${timestamp}.jpg`;
       
