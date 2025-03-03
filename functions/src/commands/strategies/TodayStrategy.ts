@@ -1,13 +1,13 @@
 import { CommandStrategy } from './CommandStrategy';
 import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
-import * as admin from 'firebase-admin';
 import { sendMessage } from '../../utils/telegramUtils';
 import { CheckIn } from '../../types/CheckIn';
 import { 
   getTodayDateString, 
   getTodayKoreanString 
 } from '../../utils/dateUtils';
+import { fetchTodayCheckins } from '../../utils/firebaseUtils';
 
 export class TodayStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -20,7 +20,7 @@ export class TodayStrategy implements CommandStrategy {
       console.log(`오늘 날짜(KST): ${today}`);
       
       // 체크인 데이터 조회
-      const checkins = await this.fetchTodayCheckins(today);
+      const checkins = await fetchTodayCheckins(today);
       
       // 체크인 데이터가 없는 경우
       if (!checkins || checkins.length === 0) {
@@ -41,46 +41,17 @@ export class TodayStrategy implements CommandStrategy {
   }
   
   /**
-   * 오늘의 체크인 데이터 조회
-   * @param dateId 날짜 ID (YYYY-MM-DD 형식)
-   * @returns 체크인 데이터 배열
-   */
-  private async fetchTodayCheckins(dateId: string): Promise<CheckIn[]> {
-    // Firestore에서 오늘 날짜의 체크인 데이터 조회
-    const dayRef = admin.firestore().collection('days').doc(dateId);
-    const dayDoc = await dayRef.get();
-    
-    if (!dayDoc.exists) {
-      return [];
-    }
-    
-    // 체크인 데이터 가져오기
-    const checkinsSnapshot = await dayRef.collection('checkins').get();
-    
-    if (checkinsSnapshot.empty) {
-      return [];
-    }
-    
-    // 체크인 데이터 정리
-    const checkins: CheckIn[] = [];
-    checkinsSnapshot.forEach(doc => {
-      checkins.push(doc.data() as CheckIn);
-    });
-    
-    return checkins;
-  }
-  
-  /**
-   * 체크인이 없을 때 메시지 전송
+   * 체크인이 없는 경우 메시지 전송
    * @param chatId 채팅 ID
    */
   private async sendNoCheckinsMessage(chatId: number): Promise<void> {
     const koreanDate = getTodayKoreanString();
-    await sendMessage(chatId, `오늘(${koreanDate})은 아직 체크인한 사람이 없습니다. 첫 번째 체크인을 해보세요! 🚀`);
+    const message = `🏃‍♂️ 러닝마라톤 - ${koreanDate}\n\n오늘은 아직 체크인한 사용자가 없습니다.`;
+    await sendMessage(chatId, message);
   }
   
   /**
-   * 중복 사용자 제거 (한 사용자가 여러 번 체크인한 경우 한 번만 표시)
+   * 중복 사용자 제거
    * @param checkins 체크인 데이터 배열
    * @returns 중복이 제거된 사용자 Map
    */
