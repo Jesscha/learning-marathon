@@ -22,11 +22,13 @@ export class CheckinStrategy implements CommandStrategy {
     }
     
     try {
-      // 사용자 정보 저장 (신규 사용자인 경우에만)
-      const isNewUser = await saveUserToFirestore(userId, userFirstName, userLastName, chatId);
-      
-      if (isNewUser) {
-        await sendMessage(chatId, `${userFirstName}님이 러닝 마라톤에 참가하셨습니다! 🎉`);
+      // 봇이 아닌 경우에만 사용자 정보 저장 (신규 사용자인 경우에만)
+      if (!update.message?.from?.is_bot) {
+        const isNewUser = await saveUserToFirestore(userId, userFirstName, userLastName, chatId);
+        
+        if (isNewUser) {
+          await sendMessage(chatId, `${userFirstName}님이 러닝 마라톤에 참가하셨습니다! 🎉`);
+        }
       }
       
       // 사진 메시지인 경우
