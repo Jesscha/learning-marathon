@@ -200,3 +200,28 @@ export async function downloadAndUploadFile(fileUrl: string, userId: number, cha
     throw new Error(`파일 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}. 파일 URL: ${fileUrl}`);
   }
 }
+
+/**
+ * 모든 사용자 정보 가져오기
+ * @returns 사용자 목록
+ */
+export async function fetchAllUsers(): Promise<User[]> {
+  try {
+    const usersCollection = admin.firestore().collection('users');
+    const snapshot = await usersCollection.get();
+    
+    if (snapshot.empty) {
+      return [];
+    }
+    
+    const users: User[] = [];
+    snapshot.forEach(doc => {
+      users.push(doc.data() as User);
+    });
+    
+    return users;
+  } catch (error) {
+    console.error('사용자 정보 조회 중 오류 발생:', error);
+    throw new Error('사용자 정보 조회 중 오류가 발생했습니다.');
+  }
+}

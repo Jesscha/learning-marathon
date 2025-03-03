@@ -2,12 +2,12 @@ import { CommandStrategy } from './CommandStrategy';
 import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
 import { sendMessage } from '../../utils/telegramUtils';
-import { CheckIn } from '../../types/CheckIn';
+import { User } from '../../types/User';
 import { 
   getTodayDateString, 
   getTodayKoreanString 
 } from '../../utils/dateUtils';
-import { fetchTodayCheckins } from '../../utils/firebaseUtils';
+import { fetchTodayCheckins, fetchAllUsers } from '../../utils/firebaseUtils';
 
 export class TodayStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -19,18 +19,26 @@ export class TodayStrategy implements CommandStrategy {
       const today = getTodayDateString();
       console.log(`오늘 날짜(KST): ${today}`);
       
-      // 체크인 데이터 조회
+      // 모든 사용자 정보 가져오기
+      const users = await fetchAllUsers();
+      
+      // 오늘의 체크인 데이터 조회
       const checkins = await fetchTodayCheckins(today);
       
-      // 체크인 데이터가 없는 경우
-      if (!checkins || checkins.length === 0) {
-        await this.sendNoCheckinsMessage(chatId);
+      // 체크인한 사용자 ID 목록 생성
+      const checkedInUserIds = new Set<string>();
+      checkins.forEach(checkin => {
+        checkedInUserIds.add(checkin.userId);
+      });
+      
+      // 사용자가 없는 경우
+      if (users.length === 0) {
+        await sendMessage(chatId, '등록된 사용자가 없습니다.');
         return;
       }
       
-      // 체크인 데이터 처리 및 메시지 전송
-      const uniqueUsers = this.getUniqueUsers(checkins);
-      const message = this.createCheckinMessage(uniqueUsers);
+      // 체크인 상태 메시지 생성 및 전송
+      const message = this.createCheckinStatusMessage(users, checkedInUserIds);
       await sendMessage(chatId, message);
       
     } catch (error) {
@@ -41,42 +49,27 @@ export class TodayStrategy implements CommandStrategy {
   }
   
   /**
-   * 체크인이 없는 경우 메시지 전송
-   * @param chatId 채팅 ID
-   */
-  private async sendNoCheckinsMessage(chatId: number): Promise<void> {
-    const koreanDate = getTodayKoreanString();
-    const message = `🏃‍♂️ 러닝마라톤 - ${koreanDate}\n\n오늘은 아직 체크인한 사용자가 없습니다.`;
-    await sendMessage(chatId, message);
-  }
-  
-  /**
-   * 중복 사용자 제거
-   * @param checkins 체크인 데이터 배열
-   * @returns 중복이 제거된 사용자 Map
-   */
-  private getUniqueUsers(checkins: CheckIn[]): Map<string, CheckIn> {
-    const uniqueUsers = new Map<string, CheckIn>();
-    checkins.forEach(checkin => {
-      uniqueUsers.set(checkin.userId, checkin);
-    });
-    return uniqueUsers;
-  }
-  
-  /**
-   * 체크인 메시지 생성
-   * @param uniqueUsers 중복이 제거된 사용자 Map
+   * 체크인 상태 메시지 생성
+   * @param users 모든 사용자 목록
+   * @param checkedInUserIds 체크인한 사용자 ID 집합
    * @returns 포맷팅된 메시지
    */
-  private createCheckinMessage(uniqueUsers: Map<string, CheckIn>): string {
+  private createCheckinStatusMessage(users: User[], checkedInUserIds: Set<string>): string {
     const koreanDate = getTodayKoreanString();
     const messageTitle = `🏃‍♂️ 러닝마라톤 - ${koreanDate}`;
     let messageBody = '';
     
-    // 체크인 목록 생성
-    uniqueUsers.forEach(checkin => {
-      messageBody += `${checkin.userFirstName} ✅\n`;
+    // 모든 사용자의 체크인 상태 표시
+    users.forEach(user => {
+      const checkStatus = checkedInUserIds.has(user.userId) ? '✅' : '☑️';
+      messageBody += `- ${user.userFirstName} ${checkStatus}\n`;
     });
+    
+    // 체크인 통계
+    const totalUsers = users.length;  
+    const checkedInCount = checkedInUserIds.size;
+    
+    messageBody += `\n총 ${totalUsers}명 중 ${checkedInCount}명 체크인 완료`;
     
     // 최종 메시지 조합
     return `${messageTitle}\n\n${messageBody}`;
