@@ -29,8 +29,13 @@ export class CheckinStrategy implements CommandStrategy {
       const photoInfo = message.photo[message.photo.length - 1]; // 가장 큰 해상도의 사진 선택
       const caption = message.caption || '';
       const content = args.join(' ') || caption || '';
+      // 사용자 정보 저장 (신규 사용자인 경우에만)
+      const isNewUser = await saveUserToFirestore(userId, userFirstName, userLastName, chatId);
       
       console.log(`사용자 ${userId} (${userFirstName} ${userLastName})가 사진(${photoInfo.file_id})과 캡션으로 체크인했습니다: ${content}`);
+      if (isNewUser) {
+        await sendMessage(chatId, `${userFirstName}님이 러닝 마라톤에 참가하셨습니다! 🎉`);
+      }
       
       try {
         // 1. 텔레그램 API를 통해 파일 정보 가져오기
