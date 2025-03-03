@@ -4,9 +4,15 @@ import { TelegramUpdate } from './types/TelegramUpdate';
 import { processCommand } from './commands/process';
 import { sendMessage } from './utils/telegramUtils';
 
-// Create an Express app to handle HTTP POST requests
+// Express 앱 생성
 const app = express();
 app.use(express.json());
+
+// 헬스 체크 엔드포인트 추가
+app.get('/', (req, res) => {
+  res.status(200).send('OK');
+});
+
 app.post('/webhook', async (req, res) => {
   try {
     const update = req.body as TelegramUpdate;
@@ -41,5 +47,5 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Export the Express app as a Firebase Cloud Function
+// Firebase Functions로만 내보내기
 export const telegramWebhook = functions.https.onRequest(app);

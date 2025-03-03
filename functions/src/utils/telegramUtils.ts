@@ -30,12 +30,12 @@ export async function sendMessage(
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to send message: ${response.statusText}`);
+      throw new Error(`메시지 전송에 실패했습니다: ${response.statusText}. 상태 코드: ${response.status}`);
     }
     
     return await response.json();
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('메시지 전송 중 오류 발생:', error);
     throw error;
   }
 }
@@ -50,19 +50,19 @@ export async function getFileUrl(fileId: string): Promise<string> {
     const response = await fetch(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
     
     if (!response.ok) {
-      throw new Error(`Failed to get file info: ${response.statusText}`);
+      throw new Error(`파일 정보 가져오기에 실패했습니다: ${response.statusText}. 상태 코드: ${response.status}, 파일 ID: ${fileId}`);
     }
     
     const data = await response.json();
     
     if (!data.ok || !data.result.file_path) {
-      throw new Error('Failed to get file path from Telegram API');
+      throw new Error(`텔레그램 API에서 파일 경로를 가져오지 못했습니다. 응답: ${JSON.stringify(data)}, 파일 ID: ${fileId}`);
     }
     
     const filePath = data.result.file_path;
     return `${TELEGRAM_FILE_API}/${filePath}`;
   } catch (error) {
-    console.error('Error getting file URL:', error);
+    console.error('파일 URL 가져오기 중 오류 발생:', error);
     throw error;
   }
 }

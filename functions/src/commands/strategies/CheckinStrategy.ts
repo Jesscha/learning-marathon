@@ -18,7 +18,9 @@ export class CheckinStrategy implements CommandStrategy {
     const userLastName = update.message?.from?.last_name || '';
     const message = update.message;
     
-    if (!chatId || !userId || !message) return;
+    if (!chatId || !userId || !message) {
+      throw new Error('메시지 정보가 불완전합니다. 채팅 ID, 사용자 ID 또는 메시지가 누락되었습니다.');
+    }
     
     // 사진 메시지인 경우
     if (isPhotoMessage(message) && message.photo && message.photo.length > 0) {
@@ -26,7 +28,7 @@ export class CheckinStrategy implements CommandStrategy {
       const caption = message.caption || '';
       const content = args.join(' ') || caption || '';
       
-      console.log(`User ${userId} (${userFirstName} ${userLastName}) checked in with photo (${photoInfo.file_id}) and caption: ${content}`);
+      console.log(`사용자 ${userId} (${userFirstName} ${userLastName})가 사진(${photoInfo.file_id})과 캡션으로 체크인했습니다: ${content}`);
       
       try {
         // 1. 텔레그램 API를 통해 파일 정보 가져오기
@@ -46,17 +48,18 @@ export class CheckinStrategy implements CommandStrategy {
         );
         
         // 4. 체크인 성공 메시지 보내기
-        await sendMessage(chatId, '사진 체크인이 성공적으로 등록되었습니다!');
+        await sendMessage(chatId, '사진 체크인이 성공적으로 등록되었습니다! 👍');
       } catch (error) {
-        console.error('Error processing photo check-in:', error);
-        await sendMessage(chatId, '사진 체크인 처리 중 오류가 발생했습니다.');
+        console.error('사진 체크인 처리 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        await sendMessage(chatId, `사진 체크인 처리 중 오류가 발생했습니다: ${errorMessage}. 잠시 후 다시 시도해주세요.`);
       }
-    } 
+    }
     // 텍스트 메시지인 경우
     else if (isTextMessage(message) && message.text) {
       const content = args.join(' ') || '';
       
-      console.log(`User ${userId} (${userFirstName} ${userLastName}) checked in with text: ${content}`);
+      console.log(`사용자 ${userId} (${userFirstName} ${userLastName})가 텍스트로 체크인했습니다: ${content}`);
       
       try {
         // 체크인 데이터 Firestore에 저장
@@ -69,10 +72,11 @@ export class CheckinStrategy implements CommandStrategy {
         );
         
         // 체크인 성공 메시지 보내기
-        await sendMessage(chatId, '텍스트 체크인이 성공적으로 등록되었습니다!');
+        await sendMessage(chatId, '텍스트 체크인이 성공적으로 등록되었습니다! 👍');
       } catch (error) {
-        console.error('Error processing text check-in:', error);
-        await sendMessage(chatId, '텍스트 체크인 처리 중 오류가 발생했습니다.');
+        console.error('텍스트 체크인 처리 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        await sendMessage(chatId, `텍스트 체크인 처리 중 오류가 발생했습니다: ${errorMessage}. 잠시 후 다시 시도해주세요.`);
       }
     }
   }
@@ -86,7 +90,7 @@ export class CheckinStrategy implements CommandStrategy {
       const response = await fetch(fileUrl);
       
       if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
+        throw new Error(`파일 다운로드에 실패했습니다: ${response.statusText}. 상태 코드: ${response.status}, URL: ${fileUrl}`);
       }
       
       // 응답을 버퍼로 변환
@@ -124,12 +128,12 @@ export class CheckinStrategy implements CommandStrategy {
       
       return url;
     } catch (error) {
-      console.error('Error downloading and uploading file:', error);
+      console.error('파일 다운로드 및 업로드 중 오류 발생:', error);
       // 임시 파일이 존재하면 삭제
       if (fs.existsSync(tempFilePath)) {
         fs.unlinkSync(tempFilePath);
       }
-      throw new Error('파일 다운로드 및 업로드 중 오류가 발생했습니다.');
+      throw new Error(`파일 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}. 파일 URL: ${fileUrl}`);
     }
   }
 
@@ -196,11 +200,11 @@ export class CheckinStrategy implements CommandStrategy {
   }
 
   getDescription(): string {
-    return '오늘의 체크인을 등록합니다.';
+    return '오늘의 학습 내용을 체크인합니다. 텍스트나 사진과 함께 사용할 수 있습니다.';
   }
 
   getUsage(): string {
-    return '/checkin [메시지]';
+    return '/checkin [내용] 또는 사진과 함께 /checkin [내용]';
   }
 }
 
