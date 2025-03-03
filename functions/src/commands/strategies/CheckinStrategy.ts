@@ -7,12 +7,17 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { sendMessage, getFileUrl } from '../../utils/telegramUtils';
+import { CheckIn } from '../../types/CheckIn';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export class CheckinStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
     const chatId = update.message?.chat?.id;
     const userId = update.message?.from?.id;
+    const userFirstName = update.message?.from?.first_name || '';
+    const userLastName = update.message?.from?.last_name || '';
     const message = update.message;
+    
     if (!chatId || !userId || !message) return;
     
     // 사진 메시지인 경우
@@ -21,7 +26,7 @@ export class CheckinStrategy implements CommandStrategy {
       const caption = message.caption || '';
       const content = args.join(' ') || caption || '';
       
-      console.log(`User ${userId} checked in with photo (${photoInfo.file_id}) and caption: ${content}`);
+      console.log(`User ${userId} (${userFirstName} ${userLastName}) checked in with photo (${photoInfo.file_id}) and caption: ${content}`);
       
       try {
         // 1. 텔레그램 API를 통해 파일 정보 가져오기
@@ -31,7 +36,14 @@ export class CheckinStrategy implements CommandStrategy {
         const downloadUrl = await this.downloadAndUploadFile(fileUrl, userId, chatId);
         
         // 3. 체크인 데이터 Firestore에 저장
-        await this.saveCheckinToFirestore(userId, chatId, content, downloadUrl);
+        await this.saveCheckinToFirestore(
+          userId, 
+          userFirstName,
+          userLastName,
+          chatId, 
+          content, 
+          downloadUrl
+        );
         
         // 4. 체크인 성공 메시지 보내기
         await sendMessage(chatId, '사진 체크인이 성공적으로 등록되었습니다!');
@@ -44,11 +56,17 @@ export class CheckinStrategy implements CommandStrategy {
     else if (isTextMessage(message) && message.text) {
       const content = args.join(' ') || '';
       
-      console.log(`User ${userId} checked in with text: ${content}`);
+      console.log(`User ${userId} (${userFirstName} ${userLastName}) checked in with text: ${content}`);
       
       try {
         // 체크인 데이터 Firestore에 저장
-        await this.saveCheckinToFirestore(userId, chatId, content);
+        await this.saveCheckinToFirestore(
+          userId,
+          userFirstName,
+          userLastName,
+          chatId,
+          content
+        );
         
         // 체크인 성공 메시지 보내기
         await sendMessage(chatId, '텍스트 체크인이 성공적으로 등록되었습니다!');
@@ -116,39 +134,65 @@ export class CheckinStrategy implements CommandStrategy {
   }
 
   // 체크인 데이터 Firestore에 저장
-  private async saveCheckinToFirestore(userId: number, chatId: number, content: string, photoUrl?: string): Promise<void> {
+  private async saveCheckinToFirestore(
+    userId: number, 
+    userFirstName: string,
+    userLastName: string,
+    chatId: number, 
+    content: string, 
+    photoUrl?: string
+  ): Promise<void> {
     try {
-      const timestamp = admin.firestore.FieldValue.serverTimestamp();
-      const checkinData: any = {
-        userId,
-        chatId,
+      // 현재 날짜 정보 가져오기
+      const now = new Date();
+      const dateId = this.formatDateToYYYYMMDD(now); // YYYY-MM-DD 형식의 ID 생성
+      const timestamp = Timestamp.fromDate(now);
+      
+      // 체크인 데이터 객체 생성 (CheckIn 인터페이스에 맞게)
+      const checkinData: CheckIn = {
+        userId: userId.toString(),
+        userFirstName,
+        userLastName,
+        chatId: chatId.toString(),
         content,
-        timestamp,
-        type: photoUrl ? 'photo' : 'text'
+        timestamp: timestamp,
+        photoUrl: photoUrl || ''
       };
       
       if (photoUrl) {
         checkinData.photoUrl = photoUrl;
       }
       
-      // Firestore에 저장
-      await admin.firestore()
-        .collection('checkins')
-        .add(checkinData);
+      // 1. Day 문서 참조 가져오기 (없으면 생성)
+      const dayRef = admin.firestore().collection('days').doc(dateId);
       
-      // 사용자의 체크인 상태 업데이트
-      await admin.firestore()
-        .collection('users')
-        .doc(userId.toString())
-        .set({
-          lastCheckin: timestamp,
-          chatId
-        }, { merge: true });
+      // 2. Day 문서가 존재하는지 확인
+      const dayDoc = await dayRef.get();
+      
+      // 3. Day 문서가 없으면 생성
+      if (!dayDoc.exists) {
+        await dayRef.set({
+          id: dateId,
+          timestamp: admin.firestore.Timestamp.fromDate(now),
+          createdAt: timestamp
+        });
+      }
+      
+      // 4. Day 문서의 하위 컬렉션으로 체크인 저장
+      await dayRef.collection('checkins').add(checkinData);
       
     } catch (error) {
       console.error('Error saving check-in to Firestore:', error);
       throw new Error('체크인 데이터 저장 중 오류가 발생했습니다.');
     }
+  }
+  
+  // YYYY-MM-DD 형식으로 날짜 포맷팅
+  private formatDateToYYYYMMDD(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   getDescription(): string {

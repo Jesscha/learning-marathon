@@ -1,14 +1,17 @@
 Firestore schema:
 
-Days (represents a day)
-  - timestamp
-  - id: (YYYY-MM-DD formatted string)
-
-Days
-  - checkins (subcollection)
-    - userId
-    - timestamp
-    - photoUrl (of firebase storage)
+/days/{YYYY-MM-DD}/
+  - id: "YYYY-MM-DD"
+  - timestamp: Timestamp
+  - createdAt: Timestamp
+  
+  /checkins/{auto-id}/
+    - userId: number
+    - chatId: number
+    - content: string
+    - timestamp: Timestamp
+    - type: "photo" | "text"
+    - photoUrl?: string (사진이 있는 경우에만)
 
 Metadata
   - lastAllCheckIn
