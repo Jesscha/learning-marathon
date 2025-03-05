@@ -1,0 +1,48 @@
+// example payload
+{
+  update_id: 972685132,
+  message: {
+    message_id: 3,
+    from: {
+      id: 7989513209,
+      is_bot: false,
+      first_name: 'Bumgeun (Eddy)',
+      last_name: 'Song',
+      language_code: 'en'
+    },
+    chat: {
+      id: 7989513209,
+      first_name: 'Bumgeun (Eddy)',
+      last_name: 'Song',
+      type: 'private'
+    },
+    date: 1740914176,
+    text: '/checkin welcome',
+    entities: [ [Object] ]
+  }
+}
+
+// example payload with image
+Received webhook update: {
+  update_id: 972685134,
+  message: {
+    message_id: 5,
+    from: {
+      id: 7989513209,
+      is_bot: false,
+      first_name: 'Bumgeun (Eddy)',
+      last_name: 'Song',
+      language_code: 'en'
+    },
+    chat: {
+      id: 7989513209,
+      first_name: 'Bumgeun (Eddy)',
+      last_name: 'Song',
+      type: 'private'
+    },
+    date: 1740914468,
+    photo: [ [Object], [Object], [Object], [Object] ],
+    caption: '/checkin',
+    caption_entities: [ [Object] ]
+  }
+}
