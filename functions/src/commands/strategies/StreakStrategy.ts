@@ -101,7 +101,7 @@ export class StreakStrategy implements CommandStrategy {
     messageBody += `\n\n${this.createCheeringMessage(streak)}`;
     
     // 최종 메시지 조합
-    return `${messageTitle}\n\n${disclaimer}${messageBody}`;
+    return `${messageTitle}\n${disclaimer}\n${messageBody}`;
   }
 
   getDescription(): string {
