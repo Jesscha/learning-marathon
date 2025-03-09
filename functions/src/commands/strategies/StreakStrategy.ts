@@ -89,10 +89,11 @@ export class StreakStrategy implements CommandStrategy {
     
     // 메시지 제목
     const messageTitle = `${streakEmoji} 러닝마라톤 스트릭 현황 ${streakEmoji}`;
+    const disclaimer = '- 스트릭은 매주 월,수,금요일에만 계산됩니다.'
     
     // 메시지 본문
     let messageBody = '';
-    messageBody += `\n현재 스트릭: ${streak}일`;
+    messageBody += `\n현재 스트릭: ${streak.current}일`;
     messageBody += `\n마지막 업데이트: ${updatedDateStr}`;
     messageBody += `\n오늘 날짜: ${todayKorean}`;
     
@@ -100,7 +101,7 @@ export class StreakStrategy implements CommandStrategy {
     messageBody += `\n\n${this.createCheeringMessage(streak)}`;
     
     // 최종 메시지 조합
-    return `${messageTitle}\n${messageBody}`;
+    return `${messageTitle}\n\n${disclaimer}${messageBody}`;
   }
 
   getDescription(): string {
