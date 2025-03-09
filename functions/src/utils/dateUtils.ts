@@ -84,3 +84,13 @@ export function getWorkingDayInfo(date: Date = getKoreanDate()): { isWorking: bo
     dayName: dayNames[dayOfWeek]
   };
 }
+
+/**
+ * 어제 날짜를 YYYY-MM-DD 형식으로 가져오기 (KST 기준)
+ * @returns 어제 날짜를 YYYY-MM-DD 형식으로 반환
+ */
+export function getYesterdayDateString(): string {
+  const yesterday = new Date(getKoreanDate());
+  yesterday.setDate(yesterday.getDate() - 1);
+  return formatDateToYYYYMMDD(yesterday);
+}

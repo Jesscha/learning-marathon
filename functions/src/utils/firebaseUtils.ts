@@ -225,3 +225,47 @@ export async function fetchAllUsers(): Promise<User[]> {
     throw new Error('사용자 정보 조회 중 오류가 발생했습니다.');
   }
 }
+
+/**
+ * 어제의 체크인 데이터 가져오기
+ * @param yesterdayDate 어제 날짜 (YYYY-MM-DD 형식)
+ * @returns 체크인 데이터 배열
+ */
+export async function fetchYesterdayCheckins(yesterdayDate: string): Promise<any[]> {
+  const checkinsRef = admin.firestore().collection('checkins');
+  const snapshot = await checkinsRef.where('date', '==', yesterdayDate).get();
+  
+  const checkins: any[] = [];
+  snapshot.forEach(doc => {
+    checkins.push(doc.data());
+  });
+  
+  return checkins;
+}
+
+/**
+ * 메타데이터 가져오기
+ * @returns 메타데이터 객체
+ */
+export async function getMetadata(): Promise<any> {
+  const metadataRef = admin.firestore().collection('metadatas').doc('metadata');
+  const doc = await metadataRef.get();
+  
+  if (doc.exists) {
+    return doc.data();
+  }
+  
+  return null;
+}
+
+/**
+ * 스트릭 값 업데이트
+ * @param newStreak 새로운 스트릭 값
+ */
+export async function updateStreak(newStreak: number): Promise<void> {
+  const metadataRef = admin.firestore().collection('metadatas').doc('metadata');
+  await metadataRef.update({
+    streak: newStreak,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+}
