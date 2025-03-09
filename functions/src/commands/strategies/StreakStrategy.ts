@@ -1,7 +1,6 @@
 import { CommandStrategy } from './CommandStrategy';
 import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
-import { formatDateToKorean } from '../../utils/dateUtils';
 import { getStreakData } from '../../utils/firebaseUtils';
 import { sendMessage } from '../../utils/telegramUtils';
 
