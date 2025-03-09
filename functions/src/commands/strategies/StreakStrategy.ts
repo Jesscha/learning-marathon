@@ -1,10 +1,7 @@
 import { CommandStrategy } from './CommandStrategy';
 import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
-import { 
-  getTodayKoreanString,
-  formatDateToKorean
-} from '../../utils/dateUtils';
+import { formatDateToKorean } from '../../utils/dateUtils';
 import { getStreakData } from '../../utils/firebaseUtils';
 import { sendMessage } from '../../utils/telegramUtils';
 
@@ -73,30 +70,14 @@ export class StreakStrategy implements CommandStrategy {
    * @returns 포맷팅된 메시지
    */
   private createStreakMessage(streakData: any): string {
-    const { streak, updatedAt } = streakData;
-    
-    // 업데이트 날짜 포맷팅
-    let updatedDateStr = '알 수 없음';
-    if (updatedAt) {
-      // Firestore 타임스탬프를 Date 객체로 변환
-      const updatedDate = updatedAt.toDate ? updatedAt.toDate() : new Date(updatedAt);
-      updatedDateStr = formatDateToKorean(updatedDate);
-    }
-    
-    // 오늘 날짜
-    const todayKorean = getTodayKoreanString();
-    const streakEmoji = streak > 0 ? '🏃‍♂️' : '🌟';
-    
+    const { streak } = streakData;
+
     // 메시지 제목
-    const messageTitle = `${streakEmoji} 러닝마라톤 스트릭 현황 ${streakEmoji}`;
+    const messageTitle = `러닝마라톤 스트릭 현황 🏃‍♂️`;
     const disclaimer = '- 스트릭은 매주 월,수,금요일에만 계산됩니다.'
-    
     // 메시지 본문
     let messageBody = '';
-    messageBody += `\n현재 스트릭: ${streak.current}일`;
-    messageBody += `\n마지막 업데이트: ${updatedDateStr}`;
-    messageBody += `\n오늘 날짜: ${todayKorean}`;
-    
+    messageBody += `\n🔥 현재 스트릭: ${streak.current}일 🔥`;
     // 응원 메시지 추가
     messageBody += `\n\n${this.createCheeringMessage(streak)}`;
     
