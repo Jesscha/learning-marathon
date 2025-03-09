@@ -36,6 +36,38 @@ export class StreakStrategy implements CommandStrategy {
   }
   
   /**
+   * 일관성에 관한 영감을 주는 명언 중 랜덤 선택
+   * @param streak 스트릭 값
+   * @returns 랜덤 명언
+   */
+  private createCheeringMessage(streak: number): string {
+    // 스트릭이 0인 경우 특별 메시지
+    if (streak === 0) {
+      return '😢 아쉽게도 스트릭이 초기화되었습니다. 다시 시작해봐요!';
+    }
+    
+    // 일관성에 관한 영감을 주는 명언 목록
+    const inspiringQuotes = [
+      `"We are what we repeatedly do. Excellence, then, is not an act, but a habit." - Aristotle`,
+      
+      `"It's not what we do once in a while that shapes our lives, but what we do consistently." - Tony Robbins`,
+      
+      `"Small disciplines repeated with consistency every day lead to great achievements gained slowly over time." - John C. Maxwell`,
+      
+      `"Consistency before intensity. Start small and become the kind of person who shows up every day. Build a new identity. Then increase the intensity." - James Clear`,
+      
+      `"Success is the result of consistent action, fueled by passion and guided by purpose."`,
+      
+      `"Long-term consistency trumps short-term intensity." - Bruce Lee`
+    ];
+    
+    // 0부터 4까지의 랜덤 인덱스 생성
+    const randomIndex = Math.floor(Math.random() * inspiringQuotes.length);
+    
+    return inspiringQuotes[randomIndex];
+  }
+  
+  /**
    * 스트릭 정보 메시지 생성
    * @param streakData 스트릭 데이터
    * @returns 포맷팅된 메시지
@@ -53,33 +85,19 @@ export class StreakStrategy implements CommandStrategy {
     
     // 오늘 날짜
     const todayKorean = getTodayKoreanString();
-    
-    // 스트릭 이모지 선택
-    let streakEmoji = '🔥';
-    if (streak >= 30) streakEmoji = '🌟';
-    else if (streak >= 20) streakEmoji = '💫';
-    else if (streak >= 10) streakEmoji = '✨';
+    const streakEmoji = streak > 0 ? '🏃‍♂️' : '🌟';
     
     // 메시지 제목
     const messageTitle = `${streakEmoji} 러닝마라톤 스트릭 현황 ${streakEmoji}`;
-    const disclaimer = '월, 수, 금요일에만 streak을 계산합니다.';
     
     // 메시지 본문
     let messageBody = '';
     messageBody += `\n현재 스트릭: ${streak}일`;
     messageBody += `\n마지막 업데이트: ${updatedDateStr}`;
     messageBody += `\n오늘 날짜: ${todayKorean}`;
-    messageBody += `\n${disclaimer}`;
-    // 스트릭 상태에 따른 추가 메시지
-    if (streak === 0) {
-      messageBody += `\n\n😢 아쉽게도 스트릭이 초기화되었습니다. 다시 시작해봐요!`;
-    } else if (streak >= 30) {
-      messageBody += `\n\n🎉 대단해요! ${streak}일 연속 달성 중입니다!`;
-    } else if (streak >= 10) {
-      messageBody += `\n\n👏 잘하고 있어요! ${streak}일 연속 달성 중입니다!`;
-    } else {
-      messageBody += `\n\n💪 화이팅! ${streak}일 연속 달성 중입니다!`;
-    }
+    
+    // 응원 메시지 추가
+    messageBody += `\n\n${this.createCheeringMessage(streak)}`;
     
     // 최종 메시지 조합
     return `${messageTitle}\n${messageBody}`;
