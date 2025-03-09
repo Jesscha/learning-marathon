@@ -66,10 +66,10 @@ export class CheckinStrategy implements CommandStrategy {
       }
       // 텍스트 메시지인 경우
       else if (isTextMessage(message) && message.text) {
-        const content = args.join(' ') || '';
+        const content = message.text || '';
         
         // 내용이 비어있는 경우 오류 메시지 전송
-        if (!content.trim()) {
+        if (content.trim().length === 0) {
           await sendMessage(chatId, '체크인을 위해서는 내용을 입력해야 합니다. 설명을 추가해주세요.');
           return;
         }
