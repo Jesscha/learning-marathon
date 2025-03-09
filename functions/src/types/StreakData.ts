@@ -1,7 +1,7 @@
 import { Timestamp } from '@google-cloud/firestore';
 
 export interface StreakData {
-    createdAt: Timestamp;
+    updatedAt: Timestamp;
     streak: {
       current: number;
       longest: number;

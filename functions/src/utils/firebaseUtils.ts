@@ -261,12 +261,12 @@ export async function getStreakData(): Promise<StreakData | null> {
 
 export async function updateStreak(currentStreak: number, longestStreak: number): Promise<void> {
   const metadataRef = admin.firestore().collection('streaks').doc('streakData');
-  const streakData: Partial<StreakData> = {
+  const streakData: StreakData = {
     streak: {
       current: currentStreak,
       longest: longestStreak
     },
     updatedAt: Timestamp.now()
   };
-  await metadataRef.update(streakData);
+  await metadataRef.set(streakData);
 }

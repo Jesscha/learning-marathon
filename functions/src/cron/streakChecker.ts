@@ -131,7 +131,7 @@ const checkAndUpdateStreak = async (): Promise<void> => {
 };
 
 // 매일 자정 1분 후(KST)에 실행되는 함수
-export const streakChecker = onSchedule({
+export const streakCheckOnMidnight = onSchedule({
   schedule: '1 0 * * *',  // 00:01 AM (0시 1분)
   timeZone: 'Asia/Seoul'
 }, async (event) => {
@@ -139,4 +139,3 @@ export const streakChecker = onSchedule({
   await checkAndUpdateStreak();
   logger.info('자정 이후 스트릭 체크 완료');
 });
-

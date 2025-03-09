@@ -4,7 +4,7 @@ import { CommandContext, commandContext } from './CommandContext';
 // 모든 전략 가져오기 (자동 등록)
 import './strategies/CheckinStrategy';
 import './strategies/TodayStrategy';
-import './strategies/StatusStrategy';
+import './strategies/StreakStrategy';
 
 export async function processCommand(update: TelegramUpdate) {
   if (!update.message) return; // 메시지가 없으면 아무 작업도 수행하지 않음
