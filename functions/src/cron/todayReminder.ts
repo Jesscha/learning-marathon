@@ -51,7 +51,7 @@ const createCheckinStatusMessage = (
     messageBody += `\n아직 ${remainingCount}명이 체크인하지 않았습니다!`;
     
     if (isLastReminder) {
-      messageBody += `\n\n⚠️ 오늘 체크인 마감 시간이 얼마 남지 않았습니다. 서둘러주세요!`;
+      messageBody += `\n\n⚠️ 모두 체크인을 하지 못할 경우, streak가 0으로 돌아가며 모임통장의 돈은 혐오단체에 기부됩니다.`;
     }
   }
   
