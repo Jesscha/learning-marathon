@@ -10,7 +10,7 @@ import {
   fetchYesterdayCheckins, 
   fetchAllUsers, 
   updateStreak, 
-  getMetadata 
+  getStreakData 
 } from '../utils/firebaseUtils';
 import { User } from '../types/User';
 
@@ -97,20 +97,26 @@ const checkAndUpdateStreak = async (): Promise<void> => {
     }
     
     // 현재 메타데이터 가져오기
-    const metadata = await getMetadata();
-    const currentStreak = metadata?.streak || 0;
+    const streakData = await getStreakData();
+    if (!streakData) {
+      logger.info('스트릭 데이터가 없습니다.');
+      return;
+    }
+
+    const currentStreak = streakData.streak.current;
     
     // 모든 사용자가 체크인했는지 확인
     const allCheckedIn = checkedInUserIds.size === users.length;
     
     if (allCheckedIn) {
       // 모든 사용자가 체크인한 경우 스트릭 증가
-      const newStreak = currentStreak + 1;
-      await updateStreak(newStreak);
-      logger.info(`모든 사용자가 체크인했습니다. 스트릭이 ${currentStreak}에서 ${newStreak}로 증가했습니다.`);
+      const newCurrentStreak = currentStreak + 1;
+      const newLongestStreak = newCurrentStreak > streakData.streak.longest ? newCurrentStreak : streakData.streak.longest;
+      await updateStreak(newCurrentStreak, newLongestStreak);
+      logger.info(`모든 사용자가 체크인했습니다. 스트릭이 ${currentStreak}에서 ${newCurrentStreak}로 증가했습니다.`);
     } else {
       // 일부 사용자가 체크인하지 않은 경우 스트릭 초기화
-      await updateStreak(0);
+      await updateStreak(0, streakData.streak.longest);
       logger.info(`일부 사용자가 체크인하지 않았습니다. 스트릭이 ${currentStreak}에서 0으로 초기화되었습니다.`);
       
       // 스트릭 초기화 메시지 전송
