@@ -5,7 +5,8 @@ import { sendMessage } from '../../utils/telegramUtils';
 import { User } from '../../types/User';
 import { 
   getTodayDateString, 
-  getTodayKoreanString 
+  getTodayKoreanString,
+  getWorkingDayInfo 
 } from '../../utils/dateUtils';
 import { fetchTodayCheckins, fetchAllUsers } from '../../utils/firebaseUtils';
 
@@ -15,6 +16,9 @@ export class TodayStrategy implements CommandStrategy {
     if (!chatId) throw new Error('채팅 ID가 누락되었습니다. 텔레그램 계정 정보를 확인해주세요.');
     
     try {
+      // 오늘이 근무일인지 확인
+      const { isWorking, dayName } = getWorkingDayInfo();
+      
       // 오늘 날짜 가져오기 (YYYY-MM-DD 형식)
       const today = getTodayDateString();
       console.log(`오늘 날짜(KST): ${today}`);
@@ -38,7 +42,7 @@ export class TodayStrategy implements CommandStrategy {
       }
       
       // 체크인 상태 메시지 생성 및 전송
-      const message = this.createCheckinStatusMessage(users, checkedInUserIds);
+      const message = this.createCheckinStatusMessage(users, checkedInUserIds, dayName, isWorking);
       await sendMessage(chatId, message);
       
     } catch (error) {
@@ -52,11 +56,18 @@ export class TodayStrategy implements CommandStrategy {
    * 체크인 상태 메시지 생성
    * @param users 모든 사용자 목록
    * @param checkedInUserIds 체크인한 사용자 ID 집합
+   * @param dayName 요일 이름
+   * @param isWorkingDay 근무일 여부
    * @returns 포맷팅된 메시지
    */
-  private createCheckinStatusMessage(users: User[], checkedInUserIds: Set<string>): string {
+  private createCheckinStatusMessage(
+    users: User[], 
+    checkedInUserIds: Set<string>, 
+    dayName: string,
+    isWorkingDay: boolean
+  ): string {
     const koreanDate = getTodayKoreanString();
-    const messageTitle = `🏃‍♂️ 러닝마라톤 - ${koreanDate}`;
+    const messageTitle = `🏃‍♂️ 러닝마라톤 - ${koreanDate} (${dayName})`;
     let messageBody = '';
     
     // 모든 사용자의 체크인 상태 표시
@@ -69,7 +80,19 @@ export class TodayStrategy implements CommandStrategy {
     const totalUsers = users.length;  
     const checkedInCount = checkedInUserIds.size;
     
-    messageBody += `\n총 ${totalUsers}명 중 ${checkedInCount}명 체크인 완료`;
+    if (checkedInCount === totalUsers) {
+      messageBody += `\n🎉 전원 체크인 완료!`;
+    } else {
+      messageBody += `\n총 ${totalUsers}명 중 ${checkedInCount}명 체크인 완료`;
+      messageBody += `\n아직 ${totalUsers - checkedInCount}명이 체크인하지 않았습니다.`;
+    }
+    
+    // 근무일 여부에 따른 추가 메시지
+    if (isWorkingDay) {
+      messageBody += `\n\n⚠️ 오늘은 스트릭을 계산하는 날입니다. 모두 체크인해야 스트릭이 유지됩니다!`;
+    } else {
+      messageBody += `\n\n📌 오늘은 ${dayName}로 스트릭을 계산하는 날이 아닙니다. 스트릭은 월, 수, 금에만 계산됩니다.`;
+    }
     
     // 최종 메시지 조합
     return `${messageTitle}\n\n${messageBody}`;
