@@ -3,7 +3,7 @@ import express from 'express';
 import { TelegramUpdate } from './types/TelegramUpdate';
 import { processCommand } from './commands/process';
 import { sendMessage } from './utils/telegramUtils';
-import * as todayReminder from './commands/todayReminder';
+import * as todayReminder from './cron/todayReminder';
 
 // Express 앱 생성
 const app = express();
