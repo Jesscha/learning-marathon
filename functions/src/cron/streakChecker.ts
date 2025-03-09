@@ -1,9 +1,3 @@
-// working day가 끝나는 자정 시간에 실행되는 cron 함수
-// 모든 user가 checkin을 했는지 확인
-// 6명 모두 checkin을 했다면, metadatas collection에 있는 metadata document의 streak 값을 최신화 (이때 메시지는 전송하지 않음)
-// 6명 모두 checkin을 하지 않았다면, metadatas collection에 있는 metadata document의 streak 값을 0으로 초기화
-// steak가 0으로 초기화된 경우, 초기화가 되었다는 메시지를 그룹챗으로 전송
-
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { sendMessage } from '../utils/telegramUtils';
