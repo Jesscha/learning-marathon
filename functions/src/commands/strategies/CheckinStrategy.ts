@@ -68,6 +68,12 @@ export class CheckinStrategy implements CommandStrategy {
       else if (isTextMessage(message) && message.text) {
         const content = args.join(' ') || '';
         
+        // 내용이 비어있는 경우 오류 메시지 전송
+        if (!content.trim()) {
+          await sendMessage(chatId, '체크인을 위해서는 내용을 입력해야 합니다. 설명을 추가해주세요.');
+          return;
+        }
+        
         console.log(`사용자 ${userId} (${userFirstName} ${userLastName})가 텍스트로 체크인했습니다: ${content}`);
         
         try {
