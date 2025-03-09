@@ -73,7 +73,7 @@ export class TodayStrategy implements CommandStrategy {
     // 모든 사용자의 체크인 상태 표시
     users.forEach(user => {
       const checkStatus = checkedInUserIds.has(user.userId) ? '✅' : '☑️';
-      messageBody += `- ${user.userFirstName} ${checkStatus}\n`;
+      messageBody += `- ${user.userFirstName} | ${user.mission} | ${checkStatus}\n`;
     });
     
     // 체크인 통계

@@ -41,7 +41,8 @@ export async function saveUserToFirestore(
       userId: userId.toString(),
       telegramChatId: chatId,
       userFirstName,
-      userLastName
+      userLastName,
+      mission: ''
     };
 
     // Firestore에 사용자 데이터 저장
