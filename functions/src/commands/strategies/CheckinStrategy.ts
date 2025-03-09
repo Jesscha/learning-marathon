@@ -10,6 +10,7 @@ import {
 } from '../../utils/firebaseUtils';
 
 export class CheckinStrategy implements CommandStrategy {
+ 
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
     const chatId = update.message?.chat?.id;
     const userId = update.message?.from?.id;
@@ -66,15 +67,16 @@ export class CheckinStrategy implements CommandStrategy {
       }
       // 텍스트 메시지인 경우
       else if (isTextMessage(message) && message.text) {
-        const content = message.text || '';
+        // 텍스트 검증
+        const validationResult = this.validateCheckinText(message.text);
         
-        // 내용이 비어있는 경우 오류 메시지 전송
-        if (content.trim().length === 0) {
-          await sendMessage(chatId, '체크인을 위해서는 내용을 입력해야 합니다. 설명을 추가해주세요.');
+        // 검증 실패 시 오류 메시지 전송 후 종료
+        if (!validationResult.isValid) {
+          await sendMessage(chatId, validationResult.errorMessage || '체크인 내용이 유효하지 않습니다.');
           return;
         }
         
-        console.log(`사용자 ${userId} (${userFirstName} ${userLastName})가 텍스트로 체크인했습니다: ${content}`);
+        console.log(`사용자 ${userId} (${userFirstName} ${userLastName})가 텍스트로 체크인했습니다: ${validationResult.cleanedText}`);
         
         try {
           // 체크인 데이터 Firestore에 저장
@@ -83,7 +85,7 @@ export class CheckinStrategy implements CommandStrategy {
             userFirstName,
             userLastName,
             chatId,
-            content
+            validationResult.cleanedText
           );
           
           // 체크인 성공 메시지 보내기
@@ -108,6 +110,31 @@ export class CheckinStrategy implements CommandStrategy {
   getUsage(): string {
     return '/checkin [내용] 또는 사진과 함께 /checkin [내용]';
   }
+
+   /**
+   * 체크인 텍스트 검증
+   * @param text 원본 텍스트
+   * @returns 검증 결과 객체 {isValid: boolean, cleanedText: string, errorMessage?: string}
+   */
+   private validateCheckinText(text: string): { isValid: boolean; cleanedText: string; errorMessage?: string } {
+    // '/checkin' 명령어 제거 및 공백 제거
+    const cleanedText = text.replace(/^\/checkin/i, '').trim();
+    
+    // 내용이 1자 이하인 경우 오류
+    if (cleanedText.length <= 1) {
+      return {
+        isValid: false,
+        cleanedText,
+        errorMessage: '체크인을 위해서는 내용을 입력해야 합니다. 설명을 추가해주세요.'
+      };
+    }
+    
+    return {
+      isValid: true,
+      cleanedText
+    };
+  }
+  
 }
 
 // 전략 등록
