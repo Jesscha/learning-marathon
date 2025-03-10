@@ -3,6 +3,8 @@ import express from 'express';
 import { TelegramUpdate } from './types/TelegramUpdate';
 import { processCommand } from './commands/process';
 import { sendMessage } from './utils/telegramUtils';
+import * as todayReminder from './cron/todayReminder';
+import * as streakChecker from './cron/streakChecker';
 
 // Express 앱 생성
 const app = express();
@@ -49,3 +51,6 @@ app.post('/webhook', async (req, res) => {
 
 // Firebase Functions로만 내보내기
 export const telegramWebhook = functions.https.onRequest(app);
+export const eveningReminder = todayReminder.eveningReminder;
+export const nightReminder = todayReminder.nightReminder;
+export const streakCheckOnMidnight = streakChecker.streakCheckOnMidnight;

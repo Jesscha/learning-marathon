@@ -18,7 +18,7 @@ export class CommandContext {
       return;
     }
     // 알 수 없는 명령어 오류를 상위로 전파
-    throw new Error(`알 수 없는 명령어입니다: ${commandName}. '/help'를 입력하여 사용 가능한 명령어를 확인하세요.`);
+    throw new Error(`${commandName}은 없는 명령어입니다.`);
   }
 
   // 사용 가능한 모든 명령어 목록 반환

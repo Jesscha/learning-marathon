@@ -57,3 +57,40 @@ export function getTodayKoreanString(): string {
 export function getDayDocumentId(date: Date = getKoreanDate()): string {
   return formatDateToYYYYMMDD(date);
 }
+
+/**
+ * 오늘이 근무일인지 확인 (월, 수, 금)
+ * @param date 확인할 날짜 (기본값: 오늘)
+ * @returns 근무일이면 true, 아니면 false
+ */
+export function isWorkingDay(date: Date = getKoreanDate()): boolean {
+  const dayOfWeek = date.getDay();
+  // 1: 월요일, 3: 수요일, 5: 금요일
+  return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
+}
+
+/**
+ * 오늘이 근무일인지 확인하고 요일 이름 반환 (KST 기준)
+ * @param date 확인할 날짜 (기본값: 오늘)
+ * @returns { isWorking: boolean, dayName: string } 근무일 여부와 요일 이름
+ */
+export function getWorkingDayInfo(date: Date = getKoreanDate()): { isWorking: boolean; dayName: string } {
+  const dayOfWeek = date.getDay();
+  const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+  const isWorking = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
+  
+  return {
+    isWorking,
+    dayName: dayNames[dayOfWeek]
+  };
+}
+
+/**
+ * 어제 날짜를 YYYY-MM-DD 형식으로 가져오기 (KST 기준)
+ * @returns 어제 날짜를 YYYY-MM-DD 형식으로 반환
+ */
+export function getYesterdayDateString(): string {
+  const yesterday = new Date(getKoreanDate());
+  yesterday.setDate(yesterday.getDate() - 1);
+  return formatDateToYYYYMMDD(yesterday);
+}
