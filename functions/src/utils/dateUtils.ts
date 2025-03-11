@@ -3,10 +3,31 @@
  * @returns 한국 표준시로 조정된 Date 객체
  */
 export function getKoreanDate(): Date {
+  // 현재 UTC 시간 가져오기
   const now = new Date();
-  // 한국은 UTC+9
-  now.setHours(now.getHours() + 9);
-  return now;
+  
+  // UTC 시간을 밀리초로 변환하고 한국 시간대(UTC+9)로 조정
+  const koreaTimeOffsetMs = 9 * 60 * 60 * 1000; // 9시간을 밀리초로
+  const utcMs = now.getTime();
+  const koreaMs = utcMs + koreaTimeOffsetMs;
+  
+  // 새 Date 객체 생성
+  return new Date(koreaMs);
+}
+
+/**
+ * 한국 표준시(KST)로 어제 날짜 가져오기
+ * @returns 한국 표준시로 조정된 어제의 Date 객체
+ */
+export function getKoreanYesterday(): Date {
+  // 한국 시간으로 오늘 날짜 가져오기
+  const koreanToday = getKoreanDate();
+  
+  // 하루 전으로 설정
+  const koreanYesterday = new Date(koreanToday);
+  koreanYesterday.setDate(koreanToday.getDate() - 1);
+  
+  return koreanYesterday;
 }
 
 /**
@@ -90,7 +111,35 @@ export function getWorkingDayInfo(date: Date = getKoreanDate()): { isWorking: bo
  * @returns 어제 날짜를 YYYY-MM-DD 형식으로 반환
  */
 export function getYesterdayDateString(): string {
-  const yesterday = new Date(getKoreanDate());
-  yesterday.setDate(yesterday.getDate() - 1);
-  return formatDateToYYYYMMDD(yesterday);
+  return formatDateToYYYYMMDD(getKoreanYesterday());
+}
+
+/**
+ * 어제 날짜를 한국어 형식으로 가져오기 (KST 기준)
+ * @returns 어제 날짜를 YYYY년 MM월 DD일 형식으로 반환
+ */
+export function getYesterdayKoreanString(): string {
+  return formatDateToKorean(getKoreanYesterday());
+}
+
+/**
+ * 날짜 디버깅 정보 출력
+ * @returns 날짜 디버깅 정보 객체
+ */
+export function getDateDebugInfo(): any {
+  const now = new Date();
+  const koreanDate = getKoreanDate();
+  const koreanYesterday = getKoreanYesterday();
+  
+  return {
+    utcNow: now.toISOString(),
+    utcTimestamp: now.getTime(),
+    koreanDate: koreanDate.toISOString(),
+    koreanFormatted: formatDateToYYYYMMDD(koreanDate),
+    koreanYesterday: koreanYesterday.toISOString(),
+    koreanYesterdayFormatted: formatDateToYYYYMMDD(koreanYesterday),
+    utcOffset: now.getTimezoneOffset(),
+    koreanDayOfWeek: koreanDate.getDay(),
+    koreanYesterdayDayOfWeek: koreanYesterday.getDay()
+  };
 }

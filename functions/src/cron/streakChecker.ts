@@ -4,7 +4,9 @@ import { sendMessage } from '../utils/telegramUtils';
 import {  
   getTodayKoreanString,
   getWorkingDayInfo,
-  getYesterdayDateString
+  getYesterdayDateString,
+  getKoreanYesterday,
+  getDateDebugInfo
 } from '../utils/dateUtils';
 import { 
   fetchYesterdayCheckins, 
@@ -61,10 +63,16 @@ const createStreakResetMessage = (
  */
 const checkAndUpdateStreak = async (): Promise<void> => {
   try {
-    // 어제가 근무일인지 확인
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    // 날짜 디버깅 정보 로깅
+    const dateDebugInfo = getDateDebugInfo();
+    logger.info('날짜 디버깅 정보:', dateDebugInfo);
+    
+    // 한국 시간 기준으로 어제 날짜 가져오기
+    const yesterday = getKoreanYesterday();
     const { isWorking, dayName } = getWorkingDayInfo(yesterday);
+    
+    // 어제가 근무일인지 확인
+    logger.info(`어제 날짜(KST): ${yesterday.toISOString()}, 요일: ${dayName}`);
     
     // 어제가 근무일이 아닌 경우 스트릭 체크를 하지 않음
     if (!isWorking) {
@@ -76,7 +84,7 @@ const checkAndUpdateStreak = async (): Promise<void> => {
     
     // 어제 날짜 가져오기 (YYYY-MM-DD 형식)
     const yesterdayDate = getYesterdayDateString();
-    logger.info(`어제 날짜(KST): ${yesterdayDate}`);
+    logger.info(`어제 날짜 문자열(KST): ${yesterdayDate}`);
     
     // 모든 사용자 정보 가져오기
     const users = await fetchAllUsers();
@@ -132,8 +140,8 @@ const checkAndUpdateStreak = async (): Promise<void> => {
 
 // 매일 자정 1분 후(KST)에 실행되는 함수
 export const streakCheckOnMidnight = onSchedule({
-  schedule: '1 0 * * *',  // 00:01 AM (0시 1분)
-  timeZone: 'Asia/Seoul'
+  schedule: '1 15 * * *',  // 15:01 UTC = 00:01 KST
+  timeZone: 'UTC'
 }, async (event) => {
   logger.info('자정 이후 스트릭 체크 시작');
   await checkAndUpdateStreak();
