@@ -7,6 +7,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { getTodayDateString } from './dateUtils';
+import { db } from '../firebase';
+import { logger } from 'firebase-functions';
 import { StreakData } from '../types/StreakData';
 
 /**
@@ -204,70 +206,119 @@ export async function downloadAndUploadFile(fileUrl: string, userId: number, cha
 }
 
 /**
+ * 어제의 체크인 데이터 가져오기
+ * @param date 날짜 문자열 (YYYY-MM-DD 형식)
+ * @returns 체크인 데이터 배열
+ */
+export async function fetchYesterdayCheckins(date: string): Promise<CheckIn[]> {
+  try {
+    logger.info(`체크인 데이터 조회 시작: days/${date}/checkins`);
+    
+    // 컬렉션 경로 확인
+    const collectionPath = `days/${date}/checkins`;
+    logger.info(`체크인 컬렉션 경로: ${collectionPath}`);
+    
+    // 체크인 데이터 가져오기
+    const snapshot = await db.collection(collectionPath).get();
+    
+    logger.info(`체크인 데이터 조회 결과: ${snapshot.size}개 문서 발견`);
+    
+    if (snapshot.empty) {
+      logger.warn(`${date} 날짜에 체크인 데이터가 없습니다.`);
+      return [];
+    }
+    // 체크인 데이터 변환
+    const checkins: CheckIn[] = snapshot.docs.map(doc => {
+      const data = doc.data();
+      logger.debug(`체크인 문서 데이터:`, data);
+      
+      return {
+        userId: data.userId,
+        userFirstName: data.userFirstName,
+        userLastName: data.userLastName,
+        chatId: data.chatId,
+        content: data.content,
+        timestamp: data.timestamp,
+        photoUrl: data.photoUrl
+      };
+    });
+
+    return checkins;
+  } catch (error) {
+    logger.error(`체크인 데이터 조회 중 오류 발생:`, error);
+    throw new Error(`체크인 데이터 조회 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+  }
+}
+
+/**
  * 모든 사용자 정보 가져오기
- * @returns 사용자 목록
+ * @returns 사용자 정보 배열
  */
 export async function fetchAllUsers(): Promise<User[]> {
   try {
-    const usersCollection = admin.firestore().collection('users');
-    const snapshot = await usersCollection.get();
-
+    const snapshot = await db.collection('users').get();
+    
     if (snapshot.empty) {
+      logger.warn('등록된 사용자가 없습니다.');
       return [];
     }
-
-    const users: User[] = [];
-    snapshot.forEach(doc => {
-      users.push(doc.data() as User);
+    const users: User[] = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        userId: doc.id,
+        userFirstName: data.userFirstName,
+        userLastName: data.userLastName || '',
+        telegramChatId: data.telegramChatId,
+        mission: data.mission || ''
+      };
     });
-
     return users;
   } catch (error) {
-    console.error('사용자 정보 조회 중 오류 발생:', error);
-    throw new Error('사용자 정보 조회 중 오류가 발생했습니다.');
+    logger.error('사용자 정보 조회 중 오류 발생:', error);
+    throw new Error(`사용자 정보 조회 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
   }
 }
 
 /**
- * 어제의 체크인 데이터 가져오기
- * @param yesterdayDate 어제 날짜 (YYYY-MM-DD 형식)
- * @returns 체크인 데이터 배열
- */
-export async function fetchYesterdayCheckins(yesterdayDate: string): Promise<any[]> {
-  const checkinsRef = admin.firestore().collection('checkins');
-  const snapshot = await checkinsRef.where('date', '==', yesterdayDate).get();
-
-  const checkins: any[] = [];
-  snapshot.forEach(doc => {
-    checkins.push(doc.data());
-  });
-
-  return checkins;
-}
-
-/**
- * 메타데이터 가져오기
- * @returns 메타데이터 객체
+ * 스트릭 데이터 가져오기
+ * @returns 스트릭 데이터
  */
 export async function getStreakData(): Promise<StreakData | null> {
-  const metadataRef = admin.firestore().collection('streaks').doc('streakData');
-  const doc = await metadataRef.get();
-
-  if (doc.exists) {
+  try {
+    // 'streaks' 컬렉션에서 'streakData' 문서 가져오기
+    const doc = await db.collection('streaks').doc('streakData').get();
+    
+    if (!doc.exists) {
+      logger.warn('스트릭 데이터가 없습니다.');
+      return null;
+    }
+    
     return doc.data() as StreakData;
+  } catch (error) {
+    logger.error('스트릭 데이터 조회 중 오류 발생:', error);
+    throw new Error(`스트릭 데이터 조회 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
   }
-
-  return null;
 }
 
-export async function updateStreak(currentStreak: number, longestStreak: number): Promise<void> {
-  const metadataRef = admin.firestore().collection('streaks').doc('streakData');
-  const streakData: StreakData = {
-    streak: {
-      current: currentStreak,
-      longest: longestStreak
-    },
-    updatedAt: Timestamp.now()
-  };
-  await metadataRef.set(streakData);
+/**
+ * 스트릭 업데이트
+ * @param current 현재 스트릭
+ * @param longest 최장 스트릭
+ */
+export async function updateStreak(current: number, longest: number) {
+  try {
+    // 'streaks' 컬렉션에 'streakData' 문서 업데이트
+    await db.collection('streaks').doc('streakData').set({
+      streak: {
+        current,
+        longest
+      },
+      updatedAt: Date.now()
+    });
+    
+    logger.info(`스트릭 업데이트 완료: current=${current}, longest=${longest}`);
+  } catch (error) {
+    logger.error('스트릭 업데이트 중 오류 발생:', error);
+    throw new Error(`스트릭 업데이트 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+  }
 }
