@@ -111,7 +111,14 @@ export function getWorkingDayInfo(date: Date = getKoreanDate()): { isWorking: bo
  * @returns 어제 날짜를 YYYY-MM-DD 형식으로 반환
  */
 export function getYesterdayDateString(): string {
-  return formatDateToYYYYMMDD(getKoreanYesterday());
+  const koreanYesterday = getKoreanYesterday();
+  const formattedDate = formatDateToYYYYMMDD(koreanYesterday);
+  
+  // 디버깅을 위한 로깅 추가
+  console.log(`한국 시간 기준 어제 날짜: ${koreanYesterday.toISOString()}`);
+  console.log(`포맷팅된 어제 날짜: ${formattedDate}`);
+  
+  return formattedDate;
 }
 
 /**

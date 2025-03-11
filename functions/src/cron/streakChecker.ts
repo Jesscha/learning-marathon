@@ -38,11 +38,30 @@ export const checkAndUpdateStreak = async (): Promise<string> => {
       return streakMessage;
     }
     
-    const currentStreak = streakData.streak.current
-    const longestStreak = streakData.streak.longest
+    const currentStreak = streakData.streak.current;
+    const longestStreak = streakData.streak.longest;
+    
+    // 모든 사용자가 체크인했는지 확인 (사용자 ID 기반)
+    const allUserIds = new Set(users.map(user => user.userId));
+    logger.info(`등록된 고유 사용자 ID 수: ${allUserIds.size}`);
+    
+    // 체크인한 사용자 ID 로깅
+    logger.info(`체크인한 사용자 ID 목록: ${Array.from(checkedInUserIds).join(', ')}`);
     
     // 모든 사용자가 체크인했는지 확인
-    const allCheckedIn = checkedInUserIds.size === users.length;
+    let allCheckedIn = true;
+    const notCheckedInUserIds = [];
+    
+    for (const userId of allUserIds) {
+      if (!checkedInUserIds.has(userId)) {
+        allCheckedIn = false;
+        notCheckedInUserIds.push(userId);
+      }
+    }
+    
+    if (notCheckedInUserIds.length > 0) {
+      logger.info(`체크인하지 않은 사용자 ID: ${notCheckedInUserIds.join(', ')}`);
+    }
     
     if (allCheckedIn) {
       // 모든 사용자가 체크인한 경우 스트릭 증가
@@ -76,6 +95,12 @@ export const manualStreakCheck = onRequest({
 }, async (req, res) => {
   try {
     logger.info('수동 스트릭 체크 요청 수신');
+    
+    // 디버그 모드 확인
+    const debug = req.query.debug === 'true';
+    if (debug) {
+      logger.info('디버그 모드로 실행됩니다.');
+    }
     
     // 스트릭 체크 실행
     const result = await checkAndUpdateStreak();

@@ -57,6 +57,7 @@ export async function getYesterdayCheckins() {
   
   // 모든 사용자 정보 가져오기
   const users = await fetchAllUsers();
+  logger.info(`등록된 사용자 수: ${users.length}`);
   
   // 사용자가 없는 경우
   if (users.length === 0) {
@@ -67,12 +68,21 @@ export async function getYesterdayCheckins() {
   
   // 어제의 체크인 데이터 조회
   const checkins = await fetchYesterdayCheckins(yesterdayDate);
+  logger.info(`어제의 체크인 문서 수: ${checkins.length}`);
   
-  // 체크인한 사용자 ID 목록 생성
+  // 체크인한 사용자 ID 목록 생성 (중복 제거)
   const checkedInUserIds = new Set<string>();
   checkins.forEach(checkin => {
     checkedInUserIds.add(checkin.userId);
   });
+  
+  logger.info(`중복 제거 후 체크인한 사용자 수: ${checkedInUserIds.size}`);
+  
+  // 체크인하지 않은 사용자 로깅
+  const notCheckedInUsers = users.filter(user => !checkedInUserIds.has(user.userId));
+  if (notCheckedInUsers.length > 0) {
+    logger.info(`체크인하지 않은 사용자: ${notCheckedInUsers.map(u => u.userFirstName).join(', ')}`);
+  }
   
   return { users, checkedInUserIds, message: null };
 }
