@@ -8,3 +8,4 @@ export const telegramWebhook = functions.https.onRequest(listeningWebhook);
 export const eveningReminder = todayReminder.eveningReminder;
 export const nightReminder = todayReminder.nightReminder;
 export const streakCheckOnMidnight = streakChecker.streakCheckOnMidnight;
+export const manualStreakCheck = streakChecker.manualStreakCheck;
