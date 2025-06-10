@@ -18,7 +18,7 @@ import { createStreakResetMessage, createStreakIncreaseMessage } from '../utils/
 const GROUP_CHAT_ID: number = -4602634156; // 러닝맨 그룹챗 ID
 
 /**
- * 어제가 근무일인지 확인
+ * 어제가 근무인지 확인
  * @returns {Promise<{isWorkingDay: boolean, dayName: string, message: string}>}
  */
 export async function checkIfYesterdayWasWorkingDay(): Promise<{
@@ -30,7 +30,7 @@ export async function checkIfYesterdayWasWorkingDay(): Promise<{
   const yesterday = getKoreanYesterday();
   const { isWorking, dayName } = getWorkingDayInfo(yesterday);
   
-  // 어제가 근무일인지 확인
+  // 어제가 근무인지 확인
   logger.info(`어제 날짜(KST): ${yesterday.toISOString()}, 요일: ${dayName}`);
   
   if (!isWorking) {
@@ -223,5 +223,28 @@ export async function recoverStreakIfPossible(): Promise<string|null> {
   // 알림 메시지 전송
   const message = `streak이 ${previous}일로 다시 복구되었습니다.`;
   await sendMessage(GROUP_CHAT_ID, message);
+  return message;
+}
+
+/**
+ * 복구 기회 만료 처리 (복구일이 지났는데 복구하지 못한 경우)
+ * @returns {Promise<string|null>} 만료 처리 메시지 또는 null
+ */
+export async function expireRecoveryOpportunity(): Promise<string|null> {
+  const streakData = await getStreakData();
+  if (!streakData || !streakData.streak.previous || streakData.streak.current !== 0) {
+    return null; // 만료할 복구 기회가 없음
+  }
+  
+  // 복구일이 아닌 경우에만 만료 처리
+  if (await isRecoveryDay()) {
+    return null; // 아직 복구일이므로 만료하지 않음
+  }
+  
+  // previous 값 제거하여 복구 기회 완전 만료
+  await updateStreak(0, streakData.streak.longest, undefined);
+  
+  const message = `복구 기회가 만료되었습니다. 스트릭은 0으로 유지됩니다.`;
+  logger.info(message);
   return message;
 } 

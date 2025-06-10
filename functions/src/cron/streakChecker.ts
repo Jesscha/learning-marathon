@@ -8,7 +8,8 @@ import {
   getStreak,
   increaseStreak,
   resetStreak,
-  recoverStreakIfPossible
+  recoverStreakIfPossible,
+  expireRecoveryOpportunity
 } from '../services/streakService';
 
 /**
@@ -26,6 +27,13 @@ export const checkAndUpdateStreak = async (): Promise<string> => {
     if (recoveryResult) {
       logger.info('스트릭 복구 성공:', recoveryResult);
       return recoveryResult;
+    }
+    
+    // 복구 기회 만료 체크
+    const expiryResult = await expireRecoveryOpportunity();
+    if (expiryResult) {
+      logger.info('복구 기회 만료:', expiryResult);
+      return expiryResult;
     }
     
     // 어제가 근무일인지 확인
