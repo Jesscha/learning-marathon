@@ -3,6 +3,7 @@ import { TelegramUpdate } from '../../types/TelegramUpdate';
 import { commandContext } from '../CommandContext';
 import { getStreakData } from '../../utils/firebaseUtils';
 import { sendMessage } from '../../utils/telegramUtils';
+import { isRecoveryDay } from '../../services/streakService';
 
 export class StreakStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -18,8 +19,11 @@ export class StreakStrategy implements CommandStrategy {
         return;
       }
       
+      // 오늘이 복구일인지 확인
+      const isRecovery = await isRecoveryDay();
+      
       // 스트릭 정보 메시지 생성
-      const message = this.createStreakMessage(streakData);
+      const message = this.createStreakMessage(streakData, isRecovery);
       
       // 메시지 전송
       await sendMessage(chatId, message);
@@ -66,19 +70,33 @@ export class StreakStrategy implements CommandStrategy {
   /**
    * 스트릭 정보 메시지 생성
    * @param streakData 스트릭 데이터
+   * @param isRecovery 복구일 여부
    * @returns 포맷팅된 메시지
    */
-  private createStreakMessage(streakData: any): string {
+  private createStreakMessage(streakData: any, isRecovery: boolean): string {
     const { streak } = streakData;
 
     // 메시지 제목
     const messageTitle = `러닝마라톤 스트릭 현황 🏃‍♂️`;
     const disclaimer = '- 스트릭은 매주 월,수,금요일에만 계산됩니다.'
+    
     // 메시지 본문
     let messageBody = '';
+    
+    // 복구일인 경우 우선적으로 안내
+    if (isRecovery) {
+      messageBody += `\n🔄 오늘은 스트릭을 복구할 수 있는 날입니다.\n`;
+    }
+    
     messageBody += `\n🔥 현재 스트릭: ${streak.current}일 🔥`;
+    
+    // 복구 관련 정보 추가
+    if (isRecovery && streak.previous) {
+      messageBody += `\n⚡️ 복구 가능한 스트릭: ${streak.previous}일`;
+    }
+    
     // 응원 메시지 추가
-    messageBody += `\n\n${this.createCheeringMessage(streak)}`;
+    messageBody += `\n\n${this.createCheeringMessage(streak.current)}`;
     
     // 최종 메시지 조합
     return `${messageTitle}\n${disclaimer}\n${messageBody}`;
