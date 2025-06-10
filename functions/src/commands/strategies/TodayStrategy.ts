@@ -9,6 +9,7 @@ import {
   getWorkingDayInfo 
 } from '../../utils/dateUtils';
 import { fetchTodayCheckins, fetchAllUsers } from '../../utils/firebaseUtils';
+import { isRecoveryDay } from '../../services/streakService';
 
 export class TodayStrategy implements CommandStrategy {
   async execute(update: TelegramUpdate, args: string[]): Promise<void> {
@@ -18,6 +19,9 @@ export class TodayStrategy implements CommandStrategy {
     try {
       // 오늘이 근무일인지 확인
       const { isWorking, dayName } = getWorkingDayInfo();
+      
+      // 오늘이 복구일인지 확인
+      const isRecovery = await isRecoveryDay();
       
       // 오늘 날짜 가져오기 (YYYY-MM-DD 형식)
       const today = getTodayDateString();
@@ -42,7 +46,7 @@ export class TodayStrategy implements CommandStrategy {
       }
       
       // 체크인 상태 메시지 생성 및 전송
-      const message = this.createCheckinStatusMessage(users, checkedInUserIds, dayName, isWorking);
+      const message = this.createCheckinStatusMessage(users, checkedInUserIds, dayName, isWorking, isRecovery);
       await sendMessage(chatId, message);
       
     } catch (error) {
@@ -58,17 +62,24 @@ export class TodayStrategy implements CommandStrategy {
    * @param checkedInUserIds 체크인한 사용자 ID 집합
    * @param dayName 요일 이름
    * @param isWorkingDay 근무일 여부
+   * @param isRecovery 복구일 여부
    * @returns 포맷팅된 메시지
    */
   private createCheckinStatusMessage(
     users: User[], 
     checkedInUserIds: Set<string>, 
     dayName: string,
-    isWorkingDay: boolean
+    isWorkingDay: boolean,
+    isRecovery: boolean
   ): string {
     const koreanDate = getTodayKoreanString();
     const messageTitle = `🏃‍♂️ 러닝마라톤 - ${koreanDate} (${dayName})`;
     let messageBody = '';
+    
+    // 복구일인 경우 우선적으로 안내
+    if (isRecovery) {
+      messageBody += `🔄 오늘은 스트릭을 복구할 수 있는 날입니다. 모두 체크인하면 스트릭이 되살아납니다.\n\n`;
+    }
     
     // 모든 사용자의 체크인 상태 표시
     users.forEach(user => {
@@ -89,7 +100,11 @@ export class TodayStrategy implements CommandStrategy {
     
     // 근무일 여부에 따른 추가 메시지
     if (isWorkingDay) {
-      messageBody += `\n\n⚠️ 오늘은 스트릭을 계산하는 날입니다. 모두 체크인해야 스트릭이 유지됩니다!`;
+      if (isRecovery) {
+        messageBody += `\n\n⚡️ 복구일입니다. 모두 체크인하면 이전 스트릭을 되찾을 수 있습니다!`;
+      } else {
+        messageBody += `\n\n⚠️ 오늘은 스트릭을 계산하는 날입니다. 모두 체크인해야 스트릭이 유지됩니다!`;
+      }
     } else {
       messageBody += `\n\n📌 오늘은 ${dayName}로 스트릭을 계산하는 날이 아닙니다. 스트릭은 월, 수, 금에만 계산됩니다.`;
     }
