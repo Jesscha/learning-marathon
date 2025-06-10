@@ -5,5 +5,6 @@ export interface StreakData {
     streak: {
       current: number;
       longest: number;
+      previous?: number;
     };
   }
