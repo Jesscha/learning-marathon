@@ -180,9 +180,13 @@ export async function isRecoveryDay(): Promise<boolean> {
     updatedAt.getMonth() === yesterday.getMonth() &&
     updatedAt.getDate() === yesterday.getDate();
   if (!isYesterday) return false;
-  // 오늘이 월/수/금인지 확인
-  const { isWorking } = getWorkingDayInfo();
-  return isWorking;
+  
+  // 오늘이 화/목/토인지 확인 (스트릭이 끊긴 다음날)
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토
+  const isRecoveryDayOfWeek = dayOfWeek === 2 || dayOfWeek === 4 || dayOfWeek === 6; // 화(2), 목(4), 토(6)
+  
+  return isRecoveryDayOfWeek;
 }
 
 /**
