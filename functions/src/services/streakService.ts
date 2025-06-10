@@ -165,6 +165,21 @@ export async function isRecoveryDay(): Promise<boolean> {
   if (!streakData || !streakData.streak.previous || streakData.streak.current !== 0) {
     return false;
   }
+  // streak이 끊긴 다음날인지 확인 (updatedAt이 어제 날짜)
+  let updatedAt: Date;
+  if (typeof (streakData.updatedAt as any).toDate === 'function') {
+    updatedAt = (streakData.updatedAt as any).toDate();
+  } else {
+    updatedAt = new Date(streakData.updatedAt as any);
+  }
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    updatedAt.getFullYear() === yesterday.getFullYear() &&
+    updatedAt.getMonth() === yesterday.getMonth() &&
+    updatedAt.getDate() === yesterday.getDate();
+  if (!isYesterday) return false;
   // 오늘이 월/수/금인지 확인
   const { isWorking } = getWorkingDayInfo();
   return isWorking;
