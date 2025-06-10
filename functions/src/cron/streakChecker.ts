@@ -7,7 +7,9 @@ import {
   getYesterdayCheckins,
   getStreak,
   increaseStreak,
-  resetStreak
+  resetStreak,
+  recoverStreakIfPossible,
+  expireRecoveryOpportunity
 } from '../services/streakService';
 
 /**
@@ -19,6 +21,20 @@ export const checkAndUpdateStreak = async (): Promise<string> => {
     // 날짜 디버깅 정보 로깅
     const dateDebugInfo = getDateDebugInfo();
     logger.info('날짜 디버깅 정보:', dateDebugInfo);
+    
+    // 먼저 복구 가능 여부 체크
+    const recoveryResult = await recoverStreakIfPossible();
+    if (recoveryResult) {
+      logger.info('스트릭 복구 성공:', recoveryResult);
+      return recoveryResult;
+    }
+    
+    // 복구 기회 만료 체크
+    const expiryResult = await expireRecoveryOpportunity();
+    if (expiryResult) {
+      logger.info('복구 기회 만료:', expiryResult);
+      return expiryResult;
+    }
     
     // 어제가 근무일인지 확인
     const { isWorkingDay, dayName, message: workingDayMessage } = await checkIfYesterdayWasWorkingDay();

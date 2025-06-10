@@ -1,18 +1,18 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { TelegramUpdate } from '../types/TelegramUpdate';
 import { processCommand } from './process';
 import { sendMessage } from '../utils/telegramUtils';
 
 // Express 앱 생성
-export const listeningWebhook = express();
+const listeningWebhook = express();
 listeningWebhook.use(express.json());
 
 // 헬스 체크 엔드포인트 추가
-listeningWebhook.get('/', (req, res) => {
+listeningWebhook.get('/', (req: Request, res: Response) => {
   res.status(200).send('OK');
 });
 
-listeningWebhook.post('/webhook', async (req, res) => {
+listeningWebhook.post('/webhook', async (req: Request, res: Response) => {
   try {
     const update = req.body as TelegramUpdate;
 
@@ -47,3 +47,5 @@ listeningWebhook.post('/webhook', async (req, res) => {
     res.status(200).send('OK');
   }
 });
+
+export { listeningWebhook };
