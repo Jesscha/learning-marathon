@@ -3,7 +3,8 @@ import {
   fetchYesterdayCheckins, 
   fetchAllUsers, 
   updateStreak, 
-  getStreakData 
+  getStreakData, 
+  fetchTodayCheckins 
 } from '../utils/firebaseUtils';
 import { 
   getKoreanYesterday, 
@@ -141,7 +142,8 @@ export async function resetStreak(
   longestStreak: number,
   dayName: string
 ): Promise<string> {
-  await updateStreak(0, longestStreak);
+  // streak이 끊길 때 previous에 currentStreak 저장
+  await updateStreak(0, longestStreak, currentStreak);
   
   const logMessage = `일부 사용자가 체크인하지 않았습니다. 스트릭이 ${currentStreak}에서 0으로 초기화되었습니다.`;
   logger.info(logMessage);
@@ -152,4 +154,59 @@ export async function resetStreak(
   logger.info('스트릭 초기화 메시지 전송 완료');
   
   return logMessage;
+}
+
+/**
+ * 오늘이 streak 복구일(recovery day)인지 판단
+ * @returns {Promise<boolean>} 복구일 여부
+ */
+export async function isRecoveryDay(): Promise<boolean> {
+  const streakData = await getStreakData();
+  if (!streakData || !streakData.streak.previous || streakData.streak.current !== 0) {
+    return false;
+  }
+  // 오늘이 월/수/금인지 확인
+  const { isWorking } = getWorkingDayInfo();
+  return isWorking;
+}
+
+/**
+ * 오늘 모두 체크인 시 previous로 streak 복구
+ * @returns {Promise<string|null>} 복구 성공 메시지 또는 null
+ */
+export async function recoverStreakIfPossible(): Promise<string|null> {
+  // 복구일이 아니면 아무것도 하지 않음
+  if (!(await isRecoveryDay())) return null;
+
+  // 오늘 날짜(YYYY-MM-DD)
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  // 모든 사용자 정보
+  const users = await fetchAllUsers();
+  if (users.length === 0) return null;
+
+  // 오늘 체크인 데이터
+  const checkins = await fetchTodayCheckins(todayStr);
+  const checkedInUserIds = new Set(checkins.map(c => c.userId));
+  const allCheckedIn = users.every(u => checkedInUserIds.has(u.userId));
+
+  if (!allCheckedIn) return null;
+
+  // streakData 불러오기
+  const streakData = await getStreakData();
+  if (!streakData || !streakData.streak.previous) return null;
+
+  // previous로 복구
+  const previous = streakData.streak.previous;
+  const longest = Math.max(previous, streakData.streak.longest);
+  await updateStreak(previous, longest, undefined); // 복구 후 previous는 undefined로
+
+  // 알림 메시지 전송
+  const message = `streak이 ${previous}일로 다시 복구되었습니다.`;
+  await sendMessage(GROUP_CHAT_ID, message);
+  return message;
 } 

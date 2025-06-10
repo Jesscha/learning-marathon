@@ -304,19 +304,24 @@ export async function getStreakData(): Promise<StreakData | null> {
  * 스트릭 업데이트
  * @param current 현재 스트릭
  * @param longest 최장 스트릭
+ * @param previous 이전 스트릭 (선택 사항)
  */
-export async function updateStreak(current: number, longest: number) {
+export async function updateStreak(current: number, longest: number, previous?: number) {
   try {
     // 'streaks' 컬렉션에 'streakData' 문서 업데이트
-    await db.collection('streaks').doc('streakData').set({
+    const streakUpdate: any = {
       streak: {
         current,
         longest
       },
       updatedAt: Date.now()
-    });
+    };
+    if (previous !== undefined) {
+      streakUpdate.streak.previous = previous;
+    }
+    await db.collection('streaks').doc('streakData').set(streakUpdate);
     
-    logger.info(`스트릭 업데이트 완료: current=${current}, longest=${longest}`);
+    logger.info(`스트릭 업데이트 완료: current=${current}, longest=${longest}, previous=${previous}`);
   } catch (error) {
     logger.error('스트릭 업데이트 중 오류 발생:', error);
     throw new Error(`스트릭 업데이트 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
