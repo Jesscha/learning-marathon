@@ -219,13 +219,14 @@ export async function recoverStreakIfPossible(): Promise<string|null> {
   const streakData = await getStreakData();
   if (!streakData || !streakData.streak.previous) return null;
 
-  // previous로 복구
+  // previous로 복구하고 +1 추가 (복구도 스트릭 성공으로 간주)
   const previous = streakData.streak.previous;
-  const longest = Math.max(previous, streakData.streak.longest);
-  await updateStreak(previous, longest, undefined); // 복구 후 previous는 undefined로
+  const recoveredStreak = previous + 1;
+  const longest = Math.max(recoveredStreak, streakData.streak.longest);
+  await updateStreak(recoveredStreak, longest, undefined); // 복구 후 previous는 undefined로
 
   // 알림 메시지 전송
-  const message = `streak이 ${previous}일로 다시 복구되었습니다.`;
+  const message = `streak이 ${recoveredStreak}일로 다시 복구되었습니다.`;
   await sendMessage(GROUP_CHAT_ID, message);
   return message;
 }
