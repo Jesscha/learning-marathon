@@ -49,9 +49,8 @@ export async function checkIfYesterdayWasWorkingDay(): Promise<{
 
 /**
  * 어제의 체크인 데이터 가져오기
- * @returns {Promise<{users: User[], checkedInUserIds: Set<string>, message: string | null}>}
  */
-export async function getYesterdayCheckins() {
+export async function getYesterdayCheckins(): Promise<{users: any[], checkedInUserIds: Set<string>, message: string | null}> {
   // 어제 날짜 가져오기 (YYYY-MM-DD 형식)
   const yesterdayDate = getYesterdayDateString();
   logger.info(`어제 날짜 문자열(KST): ${yesterdayDate}`);
@@ -90,9 +89,8 @@ export async function getYesterdayCheckins() {
 
 /**
  * 스트릭 데이터 가져오기
- * @returns {Promise<{streakData: any, message: string | null}>}
  */
-export async function getStreak() {
+export async function getStreak(): Promise<{streakData: any, message: string | null}> {
   // 현재 메타데이터 가져오기
   const streakData = await getStreakData();
   if (!streakData) {
