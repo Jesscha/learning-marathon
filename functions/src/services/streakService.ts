@@ -13,6 +13,8 @@ import {
 } from '../utils/dateUtils';
 import { sendMessage } from '../utils/telegramUtils';
 import { createStreakResetMessage, createStreakIncreaseMessage } from '../utils/messageUtils';
+import { User } from '../types/User';
+import { StreakData } from '../types/StreakData';
 
 // 그룹 채팅 ID 설정
 const GROUP_CHAT_ID: number = -4602634156; // 러닝맨 그룹챗 ID
@@ -49,9 +51,8 @@ export async function checkIfYesterdayWasWorkingDay(): Promise<{
 
 /**
  * 어제의 체크인 데이터 가져오기
- * @returns {Promise<{users: User[], checkedInUserIds: Set<string>, message: string | null}>}
  */
-export async function getYesterdayCheckins() {
+export async function getYesterdayCheckins(): Promise<{users: User[], checkedInUserIds: Set<string>, message: string | null}> {
   // 어제 날짜 가져오기 (YYYY-MM-DD 형식)
   const yesterdayDate = getYesterdayDateString();
   logger.info(`어제 날짜 문자열(KST): ${yesterdayDate}`);
@@ -90,9 +91,8 @@ export async function getYesterdayCheckins() {
 
 /**
  * 스트릭 데이터 가져오기
- * @returns {Promise<{streakData: any, message: string | null}>}
  */
-export async function getStreak() {
+export async function getStreak(): Promise<{streakData: StreakData, message: string | null}> {
   // 현재 메타데이터 가져오기
   const streakData = await getStreakData();
   if (!streakData) {
@@ -136,7 +136,7 @@ export async function increaseStreak(currentStreak: number, longestStreak: numbe
  * @returns {Promise<string>} 처리 결과 메시지
  */
 export async function resetStreak(
-  users: any[], 
+  users: User[], 
   checkedInUserIds: Set<string>, 
   currentStreak: number, 
   longestStreak: number,
@@ -166,12 +166,7 @@ export async function isRecoveryDay(): Promise<boolean> {
     return false;
   }
   // streak이 끊긴 다음날인지 확인 (updatedAt이 어제 날짜)
-  let updatedAt: Date;
-  if (typeof (streakData.updatedAt as any).toDate === 'function') {
-    updatedAt = (streakData.updatedAt as any).toDate();
-  } else {
-    updatedAt = new Date(streakData.updatedAt as any);
-  }
+  const updatedAt: Date = streakData.updatedAt.toDate();
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
@@ -219,13 +214,21 @@ export async function recoverStreakIfPossible(): Promise<string|null> {
   const streakData = await getStreakData();
   if (!streakData || !streakData.streak.previous) return null;
 
-  // previous로 복구
-  const previous = streakData.streak.previous;
-  const longest = Math.max(previous, streakData.streak.longest);
-  await updateStreak(previous, longest, undefined); // 복구 후 previous는 undefined로
+  // previous로 복구하고 +1 추가 (복구도 스트릭 성공으로 간주)
+  const previous: number = streakData.streak.previous;
+  
+  // previous 값이 유효한 숫자인지 확인
+  if (typeof previous !== 'number' || previous < 0 || !Number.isInteger(previous)) {
+    logger.error(`Invalid previous streak value: ${previous}`);
+    return null;
+  }
+  
+  const recoveredStreak = previous + 1;
+  const longest = Math.max(recoveredStreak, streakData.streak.longest);
+  await updateStreak(recoveredStreak, longest, undefined); // 복구 후 previous는 undefined로
 
   // 알림 메시지 전송
-  const message = `streak이 ${previous}일로 다시 복구되었습니다.`;
+  const message = `streak이 ${recoveredStreak}일로 다시 복구되었습니다.`;
   await sendMessage(GROUP_CHAT_ID, message);
   return message;
 }
